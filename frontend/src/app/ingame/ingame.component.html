@@ -1,0 +1,116 @@
+<div class="wrap_upper">
+
+  <div id = "player_list_div" class="playerlist"><b>Online:</b>
+    <li *ngFor="let person of players">{{ person.name }} ( {{ person.position_x }} , {{ person.position_y }} ) </li>
+  </div>
+
+  <div id = "the_world" class="matrix">
+    <b>{{ text_label_zone }} </b>
+    <br><br>
+
+    <pre class="ascii" *ngFor="let line of final_matrix"><b *ngFor="let element of line"><b
+      *ngIf="element == 'ß'" style="color:darkgreen">{{element}}</b><b
+      *ngIf="element == ','" style="color:Chartreuse">{{element}}</b><b
+      *ngIf="element == '#'" style="color:SaddleBrown">{{element}}</b><b
+      *ngIf="element == ':'" style="color:Sienna">{{element}}</b><b
+      *ngIf="element == '1'" style="color:blue">@</b><b
+      *ngIf="element == '2'" style="color:red">@</b></b></pre>
+  </div>
+
+  <div id = "character" class="fright">
+    <div>
+
+      <b> {{ authentication }} </b>
+
+      <p>meal: {{ hunger }}, hp: {{ current_health }} / {{ max_health }}<br>
+      strength: {{ getStrength() }}, dexterity: {{ getDexterity() }},
+      intelligence: {{ getIntelligence() }} <br>
+      armor: {{ getDexterity() + current_armor }},
+      damage: 1d{{ current_weapon_damage }} + {{ getStrength() }},
+      coins: {{ coins }}, next: {{ next_coins }}
+      </p>
+
+    </div><br>
+
+    <u>inventory</u>
+    <table border="0" cellpadding="0" id="inventory_table">
+      <tr><td><b>1){{Item_Type.properties[inventory_type[0]].label.toString()}}</b></td><td></td><td></td>
+          <td><b>4){{Item_Type.properties[inventory_type[3]].label.toString()}}</b></td><td></td><td></td>
+          <td><b>7){{Item_Type.properties[inventory_type[6]].label.toString()}}</b></td><td></td></tr>
+
+      <tr><td><b>2){{Item_Type.properties[inventory_type[1]].label.toString()}}</b></td><td></td><td></td>
+          <td><b>5){{Item_Type.properties[inventory_type[4]].label.toString()}}</b></td><td></td><td></td>
+          <td><b>8){{Item_Type.properties[inventory_type[7]].label.toString()}}</b></td><td></td></tr>
+
+      <tr><td><b>3){{Item_Type.properties[inventory_type[2]].label.toString()}}</b></td><td></td><td></td>
+          <td><b>6){{Item_Type.properties[inventory_type[5]].label.toString()}}</b></td><td></td><td></td>
+          <td><b>9){{Item_Type.properties[inventory_type[8]].label.toString()}}</b></td><td></td></tr>
+
+    </table>
+  </div>
+
+
+  <div id = "lower_div" class="lower">
+   <!--<p id = "skills">
+      <u>skill actions:</u>
+
+      lumber wood: {{ skill_wood_lumbering }},
+      gut carcass: {{ skill_carcass_gutting }},
+      pluck flower: {{ skill_flower_plucking }},
+      mine ore: {{ skill_ore_mining }}
+      <br>-->
+
+      <!--
+      <div *ngIf="(skill_wood_lumbering >= 10)">
+        carpenter: {{ skill_wood_carpentering }},
+        leatherwork: {{ skill_leather_working }},
+        brew potion: {{ skill_potion_brewing }},
+        mason: {{ skill_stone_masoning }}
+      </div>-->
+
+<!--
+    if ((this.skill_wood_lumbering >= 10) || (this.skill_carcass_gutting >= 10) || (this.skill_flower_plucking >= 10) || (this.skill_ore_mining >= 10))
+    {
+      text += "&#160;&#160;&#160;&#160;&#160;&#160;&#160;";
+      text += "carpenter (" + this.skill_wood_carpentering + ")&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;";
+      text += "leatherwork (" + this.skill_leather_working + ")&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;";
+      text += "brew potion (" + this.skill_potion_brewing + ")&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;";
+      text += "mason (" + this.skill_stone_masoning + ") ";
+    }-->
+
+
+
+    <!--</p>
+    <p><u>more actions:</u> walk back/forth, attack, use</p>
+    <br>-->
+
+        <div id = "zone_description">
+      <!--server data: {{ html_answer_1 }}
+      server data: {{ html_answer_2 }}<br>
+      zone name: {{ zone_name }}<br>-->
+
+      {{ text_zone_description }} More actions: walk back/forth, attack, use.
+      </div>
+
+
+      <div id = "status_messages">
+        <i>{{ text_status_message }}</i>
+      </div>
+
+      <br><br>
+
+
+      <button (click)="onMoveLeft()">West</button>
+      <button (click)="onMoveUp()">North</button>
+      <button (click)="onMoveDown()">South</button>
+      <button (click)="onMoveRight()">East</button>
+
+      <!--command: <input type="text" onkeydown="if (event.keyCode == 13) { myFunction(); return false; }" value="Your Name">-->
+      command: <input type="text" [(ngModel)]="command_message" onkeydown="if (event.keyCode == 13) { onCommandSubmitted(); return false; }">
+      <!--<input type="text" id="command" [(ngModel)]="command_message" placeholder="Your Name">-->
+      <button (click)="onCommandSubmitted()">Submit</button>
+
+    <br><br>
+    <div id = "save_status"></div>
+  </div>
+

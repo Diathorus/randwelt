@@ -1,0 +1,55 @@
+
+.wrap_upper {
+  width: 100%;
+  overflow:auto;
+}
+
+.playerlist {
+  background-color: lightgrey;
+  float:left;
+  width: 15%;
+  height: 300px;
+  border: 1px solid black;
+  border-radius: 25px;
+  padding: 20px;
+}
+
+.matrix {
+  background-color: lightgrey;
+  float:left;
+  width: 40%;
+  height: 300px;
+  border: 1px solid black;
+  border-radius: 25px;
+  padding: 5px;
+  align-content: center;
+}
+
+.fright {
+  background-color: lightgrey;
+  float:left;
+  width: 35%;
+  height: 300px;
+  border: 1px solid black;
+  border-radius: 25px;
+  padding: 5px;
+}
+
+.lower {
+  background-color: lightgrey;
+  float:left;
+  width: 90%;
+  overflow:auto;
+  border: 1px solid black;
+  border-radius: 25px;
+  padding: 5px;
+}
+
+.ascii {
+  background-color: lightgrey;
+  font-size:14px;
+  font-family: courier;
+  margin: 0px;
+  padding: 0px;
+  border: 0px;
+}
