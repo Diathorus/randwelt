@@ -27,8 +27,11 @@ export class IngameComponent implements OnInit
   own_player_y : number = 3;
   field_on_player : string;
 
-  VOLUME_M = 10;
-  VOLUME_N = 40;
+  VOLUME_M = 11; CENTER_M = 5;
+  VOLUME_N = 41; CENTER_N = 20;
+
+  VOLUME_SECTOR_MAX_X = 1000;
+  VOLUME_SECTOR_MAX_Y = 1000;
 
   clean_matrix:string[][]; // matrix without entities
   final_matrix:string[][];
@@ -924,55 +927,10 @@ export class IngameComponent implements OnInit
 
   // functions for the frontend (do not move to the server!)
 
-  onMoveLeft()
-  {
-
-    if (this.own_player_x > 0) { this.own_player_x--; this.onCommandSubmitted(); }
-
-    /*{
-      this.matrix[this.own_player_y][this.own_player_x] = this.field_on_player;
-      this.own_player_x--;
-      this.field_on_player = this.matrix[this.own_player_y][this.own_player_x];
-      this.matrix[this.own_player_y][this.own_player_x] = "@";
-      this.onCommandSubmitted();
-    }*/
-  }
-
-  onMoveRight()
-  {
-    if (this.own_player_x < this.VOLUME_N-1) { this.own_player_x++; this.onCommandSubmitted(); }
-    /*{
-      this.matrix[this.own_player_y][this.own_player_x] = this.field_on_player;
-      this.own_player_x++;
-      this.field_on_player = this.matrix[this.own_player_y][this.own_player_x];
-      this.matrix[this.own_player_y][this.own_player_x] = "@";
-      this.onCommandSubmitted();
-    }*/
-  }
-
-  onMoveUp()
-  {
-    if (this.own_player_y > 0) { this.own_player_y--; this.onCommandSubmitted(); }
-    /*{
-      this.matrix[this.own_player_y][this.own_player_x] = this.field_on_player;
-      this.own_player_y--;
-      this.field_on_player = this.matrix[this.own_player_y][this.own_player_x];
-      this.matrix[this.own_player_y][this.own_player_x] = "@";
-      this.onCommandSubmitted();
-    }*/
-  }
-
-  onMoveDown()
-  {
-    if (this.own_player_y < this.VOLUME_M-1) { this.own_player_y++; this.onCommandSubmitted();}
-    /*{
-      this.matrix[this.own_player_y][this.own_player_x] = this.field_on_player;
-      this.own_player_y++;
-      this.field_on_player = this.matrix[this.own_player_y][this.own_player_x];
-      this.matrix[this.own_player_y][this.own_player_x] = "@";
-      this.onCommandSubmitted();
-    }*/
-  }
+  onMoveWest()  { if (this.own_player_x > 0)                            { this.own_player_x--; this.moveMatrixRight(); this.onCommandSubmitted(); } }
+  onMoveEast()  { if (this.own_player_x < this.VOLUME_SECTOR_MAX_X-1)   { this.own_player_x++; this.moveMatrixLeft();  this.onCommandSubmitted(); } }
+  onMoveSouth() { if (this.own_player_y > 0)                            { this.own_player_y--; this.moveMatrixUp();    this.onCommandSubmitted(); } }
+  onMoveNorth() { if (this.own_player_y < this.VOLUME_SECTOR_MAX_Y-1)   { this.own_player_y++; this.moveMatrixDown();  this.onCommandSubmitted(); } }
 
   createWorld(zone : number)
   {
@@ -988,9 +946,7 @@ export class IngameComponent implements OnInit
             this.final_matrix[m][n] = "#"; // intial value
             if (zone == 0) // light forest
             {
-              var l_value : number = Math.floor(Math.random() * 3);
-              this.clean_matrix[m][n] = "ß";
-              if (l_value > 0) { this.clean_matrix[m][n] = ","; }
+              this.clean_matrix[m][n] = this.createRandomWorldElement(0);
             }
 
             /*else if (zone == 0)
@@ -1002,6 +958,63 @@ export class IngameComponent implements OnInit
         }
     }
   }
+
+  createRandomWorldElement(zone : number)
+  {
+    var result : string = " ";
+
+    if (zone == 0)
+    {
+      var l_value : number = Math.floor(Math.random() * 3);
+      result = "ß";
+      if (l_value > 0) { result = ","; }
+    }
+
+    return result;
+  }
+
+  moveMatrixRight()
+  {
+    for(var m: number = 0; m < this.VOLUME_M; m++) {
+      for(var n: number = this.VOLUME_N-1; n > 0; n--) {
+        this.clean_matrix[m][n] = this.clean_matrix[m][n-1];
+      }
+      this.clean_matrix[m][0] = this.createRandomWorldElement(0);
+    }
+  }
+
+  moveMatrixLeft()
+  {
+    for(var m: number = 0; m < this.VOLUME_M; m++) {
+      for(var n: number = 0; n < this.VOLUME_N-1; n++) {
+        this.clean_matrix[m][n] = this.clean_matrix[m][n+1];
+      }
+      this.clean_matrix[m][this.VOLUME_N-1] = this.createRandomWorldElement(0);
+    }
+  }
+
+  moveMatrixUp()
+  {
+    for(var m: number = 0; m < this.VOLUME_M-1; m++) {
+      for(var n: number = 0; n < this.VOLUME_N; n++) {
+        this.clean_matrix[m][n] = this.clean_matrix[m+1][n];
+      }
+    }
+
+    for(var n: number = 0; n < this.VOLUME_N; n++) { this.clean_matrix[this.VOLUME_M-1][n] = this.createRandomWorldElement(0); }
+  }
+
+  moveMatrixDown()
+  {
+    for(var m: number = this.VOLUME_M-1; m > 0; m--) {
+      for(var n: number = 0; n < this.VOLUME_N; n++) {
+        this.clean_matrix[m][n] = this.clean_matrix[m-1][n];
+      }
+    }
+
+    for(var n: number = 0; n < this.VOLUME_N; n++) { this.clean_matrix[0][n] = this.createRandomWorldElement(0); }
+  }
+
 
   applyPlayersToMatrix()
   {
@@ -1017,13 +1030,24 @@ export class IngameComponent implements OnInit
 
     // second, apply players to result matrix
 
+    // coordinate transformation: origin is lower left corner
     var j: any;
     for(j in this.players)
     {
-      this.final_matrix[this.players[j].position_y][this.players[j].position_x] = this.display_human_other_player;
+
+      var index_n : number = this.players[j].position_x - this.own_player_x + this.CENTER_N;
+      var index_m : number = this.CENTER_M - (this.players[j].position_y - this.own_player_y);
+
+      if ((index_n >= 0) && (index_n < this.VOLUME_N) && (index_m >= 0) && (index_m < this.VOLUME_M))
+      {
+        //this.final_matrix[this.players[j].position_y][this.players[j].position_x] = this.display_human_other_player;
+        this.final_matrix[index_m][index_n] = this.display_human_other_player;
+      }
     }
 
-    this.final_matrix[this.own_player_y][this.own_player_x] = this.display_human_own_player;
+    // standard: apply player in the center of the matrix
+    // in dungeons this may be dependent from the players position
+    this.final_matrix[this.CENTER_M][this.CENTER_N] = this.display_human_own_player;
   }
 
 

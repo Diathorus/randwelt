@@ -100,10 +100,10 @@
       <br><br>
 
 
-      <button (click)="onMoveLeft()">West</button>
-      <button (click)="onMoveUp()">North</button>
-      <button (click)="onMoveDown()">South</button>
-      <button (click)="onMoveRight()">East</button>
+      <button (click)="onMoveWest()">West</button>
+      <button (click)="onMoveNorth()">North</button>
+      <button (click)="onMoveSouth()">South</button>
+      <button (click)="onMoveEast()">East</button>
 
       <!--command: <input type="text" onkeydown="if (event.keyCode == 13) { myFunction(); return false; }" value="Your Name">-->
       command: <input type="text" [(ngModel)]="command_message" onkeydown="if (event.keyCode == 13) { onCommandSubmitted(); return false; }">
