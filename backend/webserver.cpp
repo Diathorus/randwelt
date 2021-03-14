@@ -3,20 +3,33 @@
 
 // cape includes
 #include <aio/cape_aio_ctx.h>
+#include <aio/cape_aio_timer.h>
 #include <sys/cape_err.h>
 #include <sys/cape_log.h>
 #include <fmt/cape_json.h>
 
 #include <hpp/cape_stc.hpp>
 
-#include <stdio.h>
+#include <iostream>
+#include <fstream> 
 #include <string>
 #include <vector>
 
 //#include <ctype.h>
 //#include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
+
+
 //-----------------------------------------------------------------------------
+// todo:
+// - Frontend Timer (Player Request)
+// - PVP
+// - Monster
+// - more Sectors
+// - Weltmatrix-Transfer
+//-----------------------------------------------------------------------------
+
 
 // this shall become the WorldManager
 int get_zone(int a_sector_x, int a_sector_y)
@@ -45,6 +58,46 @@ public:     // public members
     
     void set_position(int a_x, int a_y) { position_x = a_x; position_y = a_y; }
     
+    void store(void)
+    {
+        cape::Udc udc_player(CAPE_UDC_NODE);
+        udc_player.add("name", name);
+        udc_player.add("zone", zone);
+        udc_player.add("position_x", position_x);
+        udc_player.add("position_y", position_y);
+
+        std::string to_file = udc_player.to_string();
+        std::ofstream MyFile("save_players/" + name + ".txt");
+        MyFile << to_file;
+        MyFile.close();
+    }
+    
+    void load(void)
+    {
+        CapeErr err;
+        std::string filename = "save_players/" + name + ".txt";
+        
+        // check existance of savegame
+        std::ifstream myFile;
+        myFile.open(filename.c_str());
+        if(myFile) 
+        {
+            
+            myFile.close();
+            printf("loading player from %s ... ", filename.c_str()); 
+                       
+            cape::Udc content = cape_json_from_file (filename.c_str(), err);
+            
+            if (content.get("position_x").valid())  { position_x    = content.get("position_x"); }
+            if (content.get("position_y").valid())  { position_y    = content.get("position_y"); }
+            if (content.get("zone").valid())        { zone          = content.get("zone"); }
+
+            printf("success (x: %d, y: %d)!\n", position_x, position_y);
+            
+        } else { printf("file does not exist yet!\n"); }
+    }
+    
+    
 private:    // private attributes
     std::string name;
     int zone;
@@ -67,13 +120,13 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
 
   if (cape_str_equal (method, "GET"))
   {
-  CapeUdc content = cape_json_from_file ("data.json", err);
+    CapeUdc content = cape_json_from_file ("data.json", err);
 
-  if (content)
-  {
-    // everything is fine
-    qwebs_request_send_json (&request, content, err);
-  }
+    if (content)
+    {
+        // everything is fine
+        qwebs_request_send_json (&request, content, err);
+    }
   else
   {
     // do somthing to handle error
@@ -144,9 +197,11 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                     }
                 }
                 
+                // there is a new player!
                 if (it == players.end())
-                {       
+                {                           
                     players.push_back(Player(player_name, 0, player_x, player_y));
+                    players[players.size()-1].load(); // try to load (if savegame exists)
                 }
             
             }
@@ -225,6 +280,37 @@ int __STDCALL main_on_json_players (void* user_ptr, QWebsRequest request, CapeEr
   return CAPE_ERR_CONTINUE;
 }
 
+
+static int __STDCALL callback__on_timer(void* ptr)
+{
+  try
+  {
+    //static_cast<GVCPDevice*> (ptr)->on_timer();
+      
+    printf("on timer!\n");
+      
+    // store players (choose one randomly)
+    if (players.size() > 0)
+    {
+        int r = rand() % players.size();
+        printf("storing player %s\n", players[r].get_name().c_str());
+        players[r].store();
+    }
+    
+    return TRUE;
+  }
+  catch (std::runtime_error& e)
+  {
+    cape_log_fmt (CAPE_LL_ERROR, "WEBS", "on timer", e.what());
+    return FALSE;
+  }
+  catch (...)
+  {
+    cape_log_fmt (CAPE_LL_ERROR, "WEBS", "on timer", "unknown exception");
+    return FALSE;
+  }
+}
+
 //-----------------------------------------------------------------------------
 
 
@@ -235,7 +321,8 @@ int main (int argc, char *argv[])
 {
   int res;
   CapeErr err = cape_err_new ();
-
+  srand(0);
+  
   // local objects
   CapeAioContext aio_context = NULL;
   QWebs webs = NULL;
@@ -244,6 +331,14 @@ int main (int argc, char *argv[])
   // allocate memory for the AIO subsystem
   aio_context = cape_aio_context_new ();
 
+  // setup timer
+  CapeAioTimer timer = cape_aio_timer_new();
+  
+  res = cape_aio_timer_set (timer, 10000, NULL, callback__on_timer, err);
+  if(res){
+    goto exit_and_cleanup;
+  }
+
   // try to start the AIO
   res = cape_aio_context_open (aio_context, err);
   if (res)
@@ -251,13 +346,19 @@ int main (int argc, char *argv[])
     goto exit_and_cleanup;
   }
 
+  // now that context is there, start timer  
+  res = cape_aio_timer_add(&timer, aio_context);
+  if(res){
+    goto exit_and_cleanup;
+  }  
+  
   // enable interupt by ctrl-c
   res = cape_aio_context_set_interupts (aio_context, CAPE_AIO_ABORT, CAPE_AIO_ABORT, err);
   if (res)
   {
     goto exit_and_cleanup;
   }
-
+  
   // create a node to contain all sites
   sites = cape_udc_new (CAPE_UDC_NODE, NULL); // was CAPE_UDC_LIST before
 
