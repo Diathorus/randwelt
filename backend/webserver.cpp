@@ -49,14 +49,47 @@ public:     // public members
         zone = a_zone;
         position_x = a_pos_x;
         position_y = a_pos_y;
+        
+        hp_current = 4;
+        hp_max = 4;
+        health = calculate_health();
+        
+        strength = 0;
+        dexterity = 0;
+        intelligence = 0;
+        
     }
     
     std::string get_name() { return name; }
     int get_zone() { return zone; }
     int get_position_x() { return position_x; }
     int get_position_y() { return position_y; }
+
+    int get_hp_current() { return hp_current; }
+    int get_hp_max() { return hp_max; }
+    int calculate_health() { health = hp_current * 100 / hp_max; return health; }
+    bool is_dead() { return hp_current <= 0; }
+    
+    int get_strength() { return strength; }
+    int get_dexterity() { return dexterity; }
+    int get_intelligence() { return intelligence; }
+    
+    int calculate_armor() { return get_dexterity(); }
+    int calculate_weapon() { return 1; }
+    int create_attack() { return rand() % 20 + 1 + get_dexterity(); }
+    int create_damage() { int damage = rand() * calculate_weapon() / RAND_MAX + 1 + get_strength(); if (damage < 0) { damage = 0; } return damage; }
     
     void set_position(int a_x, int a_y) { position_x = a_x; position_y = a_y; }
+    
+    bool is_attacked(int a_attack, int a_damage)
+    {
+        bool hit = false;
+        if (a_attack >= 10 + calculate_armor()) { hit = true; }
+        if (hit) { hp_current -= a_damage; }
+        return hit;
+        
+    }
+    
     
     void store(void)
     {
@@ -65,6 +98,11 @@ public:     // public members
         udc_player.add("zone", zone);
         udc_player.add("position_x", position_x);
         udc_player.add("position_y", position_y);
+        udc_player.add("hp_current", hp_current);
+        udc_player.add("hp_max",     hp_max);
+        udc_player.add("strength",   strength);
+        udc_player.add("dexterity",  dexterity);
+        udc_player.add("intelligence", intelligence);
 
         std::string to_file = udc_player.to_string();
         std::ofstream MyFile("save_players/" + name + ".txt");
@@ -91,10 +129,13 @@ public:     // public members
             if (content.get("position_x").valid())  { position_x    = content.get("position_x"); }
             if (content.get("position_y").valid())  { position_y    = content.get("position_y"); }
             if (content.get("zone").valid())        { zone          = content.get("zone"); }
-
-            printf("success (x: %d, y: %d)!\n", position_x, position_y);
+            if (content.get("hp_current").valid())  { hp_current    = content.get("hp_current"); }
+            if (content.get("hp_max").valid())      { hp_max        = content.get("hp_max"); }
+            if (content.get("strength").valid())    { strength      = content.get("strength"); }
+            if (content.get("dexterity").valid())   { dexterity     = content.get("dexterity"); }
+            if (content.get("intelligence").valid()) { intelligence = content.get("intelligence"); }
             
-        } else { printf("file does not exist yet!\n"); }
+        } else { printf("File does not exist yet!\n"); }
     }
     
     
@@ -103,6 +144,12 @@ private:    // private attributes
     int zone;
     int position_x;
     int position_y;
+    int health;
+    
+    // attributes
+    int strength, dexterity, intelligence;
+    
+    int hp_current, hp_max; // health is in percent
     
 };
 
@@ -114,108 +161,183 @@ std::vector<Player> players;
 int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
 {
 
-  const CapeString method = qwebs_request_method (request);
+    const CapeString method = qwebs_request_method (request);
 
-  printf ("METHOD: %s\n", method);
-
-  if (cape_str_equal (method, "GET"))
-  {
-    CapeUdc content = cape_json_from_file ("data.json", err);
-
-    if (content)
+    //printf ("METHOD: %s\n", method);
+    
+    if (cape_str_equal (method, "GET"))
     {
-        // everything is fine
-        qwebs_request_send_json (&request, content, err);
-    }
-  else
-  {
-    // do somthing to handle error
-    qwebs_request_send_json (&request, NULL, err);
-  }
+        
+        // 1. parse request 
+        
+        
+        // get the dictonary of the query part of the request
+        CapeMap query_values = qwebs_request_query (request);
 
-  cape_udc_del (&content);
-  }
-  
-  
-  /*
-   * the only POST contains:
-   *  1. players name
-   *  2. typed command
-   */
-  
-  else if (cape_str_equal (method, "POST"))
-  {
-      
-    // analyze request ....
-      
-    CapeStream h = qwebs_request_body (request);
-  
-    if (h)
-    {
-
-        printf("received a command!\n");
-        
-        const CapeString value = cape_stream_get(h);
-        printf("value: %s\n", value);
-        
-        //CapeUdc content = cape_json_from_s (value);
-        cape::Udc content = cape_json_from_s (value);
-        
-        // example: {"player_name":"Sardus","command":"nix"}
-
-        
-        if ((false == content.get("player_name").valid()) ||
-            (false == content.get("command").valid()) ||
-            (false == content.get("player_x").valid()) ||
-            (false == content.get("player_y").valid()))
+        if (query_values)
         {
-            printf("Problem!\n");
-        } else
-        {
-            std::string player_name = content.get("player_name");
-            printf("player name: %s\n", player_name.c_str());
-            
-            std::string player_cmd = content.get("command");
-            printf("player command: %s\n", player_cmd.c_str());
-            
-            int player_x = content.get("player_x");
-            printf("player x: %d\n", player_x);
 
-            int player_y = content.get("player_y");
-            printf("player y: %d\n", player_y);
-            
-            
-            if ("Your Name" != player_name)
+            CapeMapNode name = cape_map_find(query_values, "name");
+        
+            if (name) 
             {
+                
+                // retrieve the value
+                const CapeString value = (const CapeString)cape_map_node_value(name);
+
+                printf("received authentication name: %s\n", value);
+                
+                // find player
                 std::vector<Player>::iterator it;     
                 for (it=players.begin(); it!=players.end(); ++it)
                 {
-                    if (it->get_name() == player_name) 
-                    { 
-                        it->set_position(player_x, player_y);
-                        break; 
-                    }
+                    if (it->get_name() == value) { break; }
                 }
+                    
+                if (it != players.end()) // player found
+                {
+                    
+                    // 2. send response
+
+                    cape::Udc udc_players_list(CAPE_UDC_LIST);
+                    cape::Udc udc_player_stats(CAPE_UDC_NODE);
                 
-                // there is a new player!
-                if (it == players.end())
-                {                           
-                    players.push_back(Player(player_name, 0, player_x, player_y));
-                    players[players.size()-1].load(); // try to load (if savegame exists)
+                    udc_player_stats.add("hp_current", it->get_hp_current());
+                    udc_player_stats.add("hp_max", it->get_hp_max());
+                    udc_player_stats.add("strength", it->get_strength());
+                    udc_player_stats.add("dexterity", it->get_dexterity());
+                    udc_player_stats.add("intelligence", it->get_intelligence());
+                    udc_player_stats.add("armor", it->calculate_armor());
+                    udc_player_stats.add("weapon", it->calculate_weapon());
+                    
+                    udc_players_list.add(udc_player_stats);
+
+                    std::cout << "UDC to be sent: " <<  udc_players_list << std::endl;
+                    
+                    qwebs_request_send_buf (&request, udc_players_list.to_string().c_str(), "application/json", err);                
+                        
                 }
-            
             }
         }
-    }
-   
-    printf("Greetings, new player!\n");
+    }      
+ 
     
-    //CapeStream h = qwebs_request_body (request);
-    qwebs_request_send_buf (&request, "[{\"name\":\"danger zone\"}]", "application/json", err);
+  /*
+  * POST contains players name, command and position
+  *  1. handle players command
+  *  2. SEND all players and monsters position and health
+  */
+  
+    else if (cape_str_equal (method, "POST"))
+    {
+        
+        // analyze request ....
+        
+        CapeStream h = qwebs_request_body (request);
+    
+        if (h)
+        {
 
-  }
+            printf("received a command!\n");
+            
+            const CapeString value = cape_stream_get(h);
+            printf("value: %s\n", value);
+            
+            cape::Udc content = cape_json_from_s (value);
+            
+            // example: {"player_name":"Sardus","command":"nix"}
 
-  return CAPE_ERR_CONTINUE;
+            
+            if ((false == content.get("player_name").valid()) ||
+                (false == content.get("command").valid()) ||
+                (false == content.get("player_x").valid()) ||
+                (false == content.get("player_y").valid()))
+            {
+                printf("Problem!\n");
+            } else
+            {
+                std::string player_name = content.get("player_name");
+                printf("player name: %s\n", player_name.c_str());
+                
+                std::string player_cmd = content.get("command");
+                printf("player command: %s\n", player_cmd.c_str());
+                
+                int player_x = content.get("player_x");
+                printf("player x: %d\n", player_x);
+
+                int player_y = content.get("player_y");
+                printf("player y: %d\n", player_y);
+                
+                // find player index
+                
+                if ("Your Name" != player_name)
+                {
+                                
+                    std::vector<Player>::iterator it;     
+                    for (it=players.begin(); it!=players.end(); ++it)
+                    {
+                        if (it->get_name() == player_name) 
+                        { 
+                            it->set_position(player_x, player_y);
+                            break; 
+                        }
+                    }
+                    
+                    // there is a new player!
+                    if (it == players.end())
+                    {                           
+                        players.push_back(Player(player_name, 0, player_x, player_y));
+                        players[players.size()-1].load(); // try to load (if savegame exists)
+                        
+                    } else // old player, solve commands:
+                
+                    {
+                    
+                        // =========== work on commands ============
+                        if ("attack" == player_cmd)
+                        {
+                            printf("Got attack command!\n");
+                            
+                            // finding player
+                            
+                            std::vector<Player>::iterator other_player_it;     
+                            for (other_player_it=players.begin(); other_player_it!=players.end(); ++other_player_it)
+                            {
+                                if  ((other_player_it->get_name() != player_name) && 
+                                    ( other_player_it->get_position_x() == it->get_position_x() ) &&
+                                    ( other_player_it->get_position_y() == it->get_position_y()))
+                                { 
+                                    break; 
+                                }
+                            }
+                        
+                            if (other_player_it != players.end()) // found some player to attack
+                            {
+                                
+                                int attack = it->create_attack();
+                                printf("%s attacks player %s with %d ", it->get_name().c_str(), other_player_it->get_name().c_str(), attack);
+                                int damage = it->create_damage();
+                                bool hit = other_player_it->is_attacked(attack, damage);
+                                
+                                if (other_player_it->is_dead()) { printf("and wins!\n"); }
+                                else if (!hit) { printf("but misses!\n"); }
+                                else  { printf("and causes %d damage!\n", damage); }
+                                
+                            }
+                            
+                        }
+                    } // no new player
+                    
+                } // valid player name
+            }
+        }
+        
+        //CapeStream h = qwebs_request_body (request);
+        qwebs_request_send_buf (&request, "[{\"name\":\"danger zone\"}]", "application/json", err);
+        
+    }
+
+    return CAPE_ERR_CONTINUE;
 }
 
 
@@ -225,30 +347,11 @@ int __STDCALL main_on_json_players (void* user_ptr, QWebsRequest request, CapeEr
 
   const CapeString method = qwebs_request_method (request);
 
-  printf ("METHOD: %s\n", method);
+  //printf ("METHOD: %s\n", method);
 
   if (cape_str_equal (method, "GET"))
   {
  
-      /*CapeUdc content = cape_json_from_file ("data.json", err);
-
-    if (content)
-    {
-        // everything is fine
-        qwebs_request_send_json (&request, content, err);
-    }
-    else
-    {
-        // do somthing to handle error
-        qwebs_request_send_json (&request, NULL, err);
-    }
-    
-    
-    cape_udc_del (&content);
-    */
-      
-      
-    
     // build the player structure
     printf("players list: %d\n", players.size());
     
@@ -264,6 +367,7 @@ int __STDCALL main_on_json_players (void* user_ptr, QWebsRequest request, CapeEr
         udc_new_player.add("zone", it->get_zone());
         udc_new_player.add("position_x", it->get_position_x());
         udc_new_player.add("position_y", it->get_position_y());
+        udc_new_player.add("health", it->calculate_health());
         udc_players_list.add(udc_new_player); // too heavy to parse for now
     } 
     
@@ -286,8 +390,6 @@ static int __STDCALL callback__on_timer(void* ptr)
   try
   {
     //static_cast<GVCPDevice*> (ptr)->on_timer();
-      
-    printf("on timer!\n");
       
     // store players (choose one randomly)
     if (players.size() > 0)
@@ -332,6 +434,7 @@ int main (int argc, char *argv[])
   aio_context = cape_aio_context_new ();
 
   // setup timer
+  
   CapeAioTimer timer = cape_aio_timer_new();
   
   res = cape_aio_timer_set (timer, 10000, NULL, callback__on_timer, err);
@@ -346,11 +449,12 @@ int main (int argc, char *argv[])
     goto exit_and_cleanup;
   }
 
+  
   // now that context is there, start timer  
   res = cape_aio_timer_add(&timer, aio_context);
   if(res){
     goto exit_and_cleanup;
-  }  
+  } 
   
   // enable interupt by ctrl-c
   res = cape_aio_context_set_interupts (aio_context, CAPE_AIO_ABORT, CAPE_AIO_ABORT, err);
@@ -376,7 +480,7 @@ int main (int argc, char *argv[])
     goto exit_and_cleanup;
   }
   
-  // register players list
+  // register players list (POST -> interpret command and send overview about all players and monsters)
   res = qwebs_reg (webs, "players", NULL, main_on_json_players, err);
   if (res)
   {
