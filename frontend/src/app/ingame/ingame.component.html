@@ -1,7 +1,7 @@
 <div class="wrap_upper">
 
   <div id = "player_list_div" class="playerlist"><b>Online:</b>
-    <li *ngFor="let person of players">{{ person.name }} ( {{ person.position_x }} , {{ person.position_y }} ) </li>
+    <li *ngFor="let person of players">{{ person.name }} ({{ person.health }}%) </li>
   </div>
 
   <div id = "the_world" class="matrix">
@@ -20,13 +20,15 @@
   <div id = "character" class="fright">
     <div>
 
-      <b> {{ authentication }} </b>
+      <b> {{ authentication }} </b> (position: {{ own_player_x }}, {{ own_player_y }})
 
-      <p>meal: {{ hunger }}, hp: {{ current_health }} / {{ max_health }}<br>
-      strength: {{ getStrength() }}, dexterity: {{ getDexterity() }},
-      intelligence: {{ getIntelligence() }} <br>
-      armor: {{ getDexterity() + current_armor }},
-      damage: 1d{{ current_weapon_damage }} + {{ getStrength() }},
+      <!-- meal: {{ hunger }} -->
+
+      <p>hp: {{ own_hp_current }} / {{ own_hp_max }}<br>
+      strength: {{ own_strength }}, dexterity: {{ own_dexterity }}, intelligence: {{ own_intelligence }} <br>
+      armor: {{ own_armor }} + {{ own_dexterity }},
+      damage: {{ own_weapon }} + {{ own_strength }},
+
       coins: {{ coins }}, next: {{ next_coins }}
       </p>
 
@@ -110,7 +112,11 @@
       <!--<input type="text" id="command" [(ngModel)]="command_message" placeholder="Your Name">-->
       <button (click)="onCommandSubmitted()">Submit</button>
 
-    <br><br>
-    <div id = "save_status"></div>
+      <br>
+
+      <button (click)="onAttack()">Attack</button>
+
+
+      <br><br>
   </div>
 

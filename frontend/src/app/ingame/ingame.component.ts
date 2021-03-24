@@ -10,6 +10,8 @@ import { HttpClient } from '@angular/common/http';
 export class IngameComponent implements OnInit
 {
 
+  interval; // timer
+
   // human indication mapping for @
   display_human_own_player : string = "1";
   display_human_other_player : string = "2";
@@ -36,30 +38,53 @@ export class IngameComponent implements OnInit
   clean_matrix:string[][]; // matrix without entities
   final_matrix:string[][];
 
+  // own player values
+  own_hp_current : number = 7;
+  own_hp_max : number = 7;
+  own_strength : number = 7;
+  own_dexterity : number = 7;
+  own_intelligence : number = 7;
+  own_armor : number = 7;
+  own_weapon : number = 7;
+
+
   constructor(private http: HttpClient)
   {
     this.createWorld(0);
     this.applyPlayersToMatrix();
+
+    // set up timer
+    this.interval = setInterval(() => {
+      this.requestPlayersFromServer();
+    }, 5000)
+
   }
 
-
-  requestHTTP()
+  requestHTTP(a_command : string)
   {
 
     class Data { name: string };
     var data: Data[]
 
     // send data to the server
-    this.http.post("json/x", JSON.stringify ({player_name:this.authentication, command:this.command_message, player_x:this.own_player_x, player_y:this.own_player_y})).subscribe ((data) =>
+    this.http.post("json/x", JSON.stringify ({player_name:this.authentication, command:a_command, player_x:this.own_player_x, player_y:this.own_player_y})).subscribe ((data) =>
     {
       this.zone_name = data[0].name           // next callback
     });
 
+    // example: http://127.0.0.1:8080/hidden.html?M0:O1=123
+
     // get data from the server (for now from file)
-    this.http.get("json/x").subscribe ((data) =>
+    this.http.get("json/x?name="+ this.authentication).subscribe ((data) =>
     {
-      this.html_answer_1 = data[0].name            //Next callback
-      this.html_answer_2 = data[1].name
+      this.own_hp_current   = data[0].hp_current;            //Next callback
+      this.own_hp_max       = data[0].hp_max;
+      this.own_strength     = data[0].strength;
+      this.own_dexterity    = data[0].dexterity;
+      this.own_intelligence = data[0].intelligence;
+      this.own_armor        = data[0].armor;
+      this.own_weapon       = data[0].weapon;
+
     },
     (error) => {                                   //Error callback
           console.error('Request failed with error')
@@ -69,8 +94,11 @@ export class IngameComponent implements OnInit
           console.log('Request completed')
     });
 
-    // get other players from the server
+  }
 
+  // get other players and monsters from the server
+  requestPlayersFromServer()
+  {
 
     var parsing_players: Entity[];
 
@@ -91,6 +119,7 @@ export class IngameComponent implements OnInit
         this.players[j].zone = parsing_players[j].zone;
         this.players[j].position_x = parsing_players[j].position_x;
         this.players[j].position_y = parsing_players[j].position_y;
+        this.players[j].health = parsing_players[j].health;
 
         if (this.authentication == this.players[j].name)
         {
@@ -117,8 +146,6 @@ export class IngameComponent implements OnInit
 
 
   // this part needs to be moved to the server!
-
-
 
   // descriptive texts
 
@@ -484,14 +511,13 @@ export class IngameComponent implements OnInit
   onCommandSubmitted()
   {
 
-    this.requestHTTP();
-
     this.text_status_message = "";
 
 
     this.round++;
 
-    // survival
+    // survival (thirst, hunger, rotten flesh, automatic level up)
+    /*
     if (true == this.thirst) { this.current_health--; this.text_status_message += "I need something to drink! "; }
     else if (1 == this.throwDice(100) && (this.zone > 0)) { this.thirst = true; this.text_status_message += "I need something to drink! "; } // warning 1 round before hp--
 
@@ -506,7 +532,7 @@ export class IngameComponent implements OnInit
     {
       this.level++; this.coins -= this.next_coins; this.give_me_points++; this.max_health += this.throwDice(6);
       this.text_status_message += "I advanced to the next level but lost all my coins! ";
-    }
+    }*/
 
     if (this.give_me_points > 0) { this.text_status_message += "I should give me strength, dexterity or intelligence! "; }
 
@@ -592,7 +618,7 @@ export class IngameComponent implements OnInit
       } else { this.text_status_message += "I have no more points left, must wait for next level! "; }
     }
 
-    else if ("walk forth" == this.command_message)
+    /*else if ("walk forth" == this.command_message)
     {
       if (this.zone < 3)
       {
@@ -629,7 +655,10 @@ export class IngameComponent implements OnInit
           this.coins--;
         } else { this.text_status_message += "I have no coins to spend for a bed and a meal! "; }
       } else { this.text_status_message += "I cannot sleep here! "; }
-    }
+    }*/
+
+
+/*
     else if ("attack" == this.command_message)
     {
       if (true == this.monster_encounter)
@@ -652,6 +681,10 @@ export class IngameComponent implements OnInit
         } else { this.text_status_message += "I attack with " + l_attack + " but miss. "; }
       } else { this.text_status_message += "I see no enemy here. "; }
     }
+*/
+
+
+
     else if ("pluck flower" == this.command_message)
     {
           if (this.zone < 1) { this.text_status_message += "There are no flowers in this village! "; }
@@ -927,10 +960,10 @@ export class IngameComponent implements OnInit
 
   // functions for the frontend (do not move to the server!)
 
-  onMoveWest()  { if (this.own_player_x > 0)                            { this.own_player_x--; this.moveMatrixRight(); this.onCommandSubmitted(); } }
-  onMoveEast()  { if (this.own_player_x < this.VOLUME_SECTOR_MAX_X-1)   { this.own_player_x++; this.moveMatrixLeft();  this.onCommandSubmitted(); } }
-  onMoveSouth() { if (this.own_player_y > 0)                            { this.own_player_y--; this.moveMatrixUp();    this.onCommandSubmitted(); } }
-  onMoveNorth() { if (this.own_player_y < this.VOLUME_SECTOR_MAX_Y-1)   { this.own_player_y++; this.moveMatrixDown();  this.onCommandSubmitted(); } }
+  onMoveWest()  { if (this.own_player_x > 0)                            { this.own_player_x--; this.moveMatrixRight();  this.applyPlayersToMatrix(); this.requestHTTP("move"); } }
+  onMoveEast()  { if (this.own_player_x < this.VOLUME_SECTOR_MAX_X-1)   { this.own_player_x++; this.moveMatrixLeft();   this.applyPlayersToMatrix(); this.requestHTTP("move"); } }
+  onMoveSouth() { if (this.own_player_y > 0)                            { this.own_player_y--; this.moveMatrixUp();     this.applyPlayersToMatrix(); this.requestHTTP("move"); } }
+  onMoveNorth() { if (this.own_player_y < this.VOLUME_SECTOR_MAX_Y-1)   { this.own_player_y++; this.moveMatrixDown();   this.applyPlayersToMatrix(); this.requestHTTP("move"); } }
 
   createWorld(zone : number)
   {
@@ -1040,8 +1073,10 @@ export class IngameComponent implements OnInit
 
       if ((index_n >= 0) && (index_n < this.VOLUME_N) && (index_m >= 0) && (index_m < this.VOLUME_M))
       {
-        //this.final_matrix[this.players[j].position_y][this.players[j].position_x] = this.display_human_other_player;
-        this.final_matrix[index_m][index_n] = this.display_human_other_player;
+        if (this.players[j].name != this.authentication) // display not myself (we come later)
+        {
+          this.final_matrix[index_m][index_n] = this.display_human_other_player;
+        }
       }
     }
 
@@ -1050,19 +1085,10 @@ export class IngameComponent implements OnInit
     this.final_matrix[this.CENTER_M][this.CENTER_N] = this.display_human_own_player;
   }
 
-
-// next server to save
-// next server -> intrinsic (and periodic save)
-// drop -> server inventory
-// sell orders -> buying them
-// bubbles -> companies -> dungeons
-// events -> NPCs -> farming -> cooking
-// weather and insanity
-// fight skills: stun, bleed, light
-// ranged attacks
-// coldness -> pelt-armor = max; use fur; use blue wood (fire) -> use wood beam (info)
-// new item? blue potion, ...
- //SAVE,Tarok,L,3,S,1,D,2,I,0,G,0,H,20,h,20,c,39,Z,0,t,0,h,1,S,18,17,0,16,7,16,0,1,INV,1,21,1,18,1,27,0,1,5,10,2,25,0,24,0,0,0,0,
+  onAttack()
+  {
+    this.requestHTTP("attack");
+  }
 
 }
 
@@ -1072,6 +1098,7 @@ export class Entity
   zone: number;
   position_x: number;
   position_y: number;
+  health: number;
   background: string;
 };
 
