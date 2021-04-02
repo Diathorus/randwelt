@@ -13,6 +13,7 @@
       *ngIf="element == ','" style="color:Chartreuse">{{element}}</b><b
       *ngIf="element == '#'" style="color:SaddleBrown">{{element}}</b><b
       *ngIf="element == ':'" style="color:Sienna">{{element}}</b><b
+      *ngIf="element == ';'" style="color:DimGray">{{element}}</b><b
       *ngIf="element == '1'" style="color:blue">@</b><b
       *ngIf="element == '2'" style="color:red">@</b></b></pre>
   </div>
@@ -86,12 +87,13 @@
     <p><u>more actions:</u> walk back/forth, attack, use</p>
     <br>-->
 
-        <div id = "zone_description">
+      <div id = "zone_description">
       <!--server data: {{ html_answer_1 }}
       server data: {{ html_answer_2 }}<br>
       zone name: {{ zone_name }}<br>-->
 
-      {{ text_zone_description }} More actions: walk back/forth, attack, use.
+        {{ text_zone_description }}
+
       </div>
 
 
@@ -115,7 +117,7 @@
       <br>
 
       <button (click)="onAttack()">Attack</button>
-
+      <button (click)="onFood()">Food</button>
 
       <br><br>
   </div>
