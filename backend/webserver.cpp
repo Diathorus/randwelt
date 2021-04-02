@@ -21,6 +21,12 @@
 #include <unistd.h>
 
 
+#define VOLUME_SECTOR_MAX_X 1000
+#define VOLUME_SECTOR_MAX_Y 1000
+
+#define DISPLAY_M_HALF 5
+#define DISPLAY_N_HALF 20
+
 //-----------------------------------------------------------------------------
 // todo:
 // - Frontend Timer (Player Request)
@@ -38,12 +44,12 @@ int get_zone(int a_sector_x, int a_sector_y)
 }
 
 
-class Player
+class Entity
 {
     
 public:     // public members
     
-    Player(std::string a_name, int a_zone, int a_pos_x, int a_pos_y)
+    Entity(std::string a_name, int a_zone, int a_pos_x, int a_pos_y)
     {
         name = a_name;
         zone = a_zone;
@@ -80,6 +86,11 @@ public:     // public members
     int create_damage() { int damage = rand() * calculate_weapon() / RAND_MAX + 1 + get_strength(); if (damage < 0) { damage = 0; } return damage; }
     
     void set_position(int a_x, int a_y) { position_x = a_x; position_y = a_y; }
+    void move_right() { position_x++; if (position_x > VOLUME_SECTOR_MAX_X)  { position_x = VOLUME_SECTOR_MAX_X; } }
+    void move_left()  { position_x--; if (position_x < 0)                    { position_x = 0; } }
+    void move_up()    { position_y++; if (position_y > VOLUME_SECTOR_MAX_Y)  { position_y = VOLUME_SECTOR_MAX_Y; } }
+    void move_down()  { position_y--; if (position_y < 0)                    { position_y = 0; } }
+    
     
     bool is_attacked(int a_attack, int a_damage)
     {
@@ -87,10 +98,40 @@ public:     // public members
         if (a_attack >= 10 + calculate_armor()) { hit = true; }
         if (hit) { hp_current -= a_damage; }
         return hit;
-        
     }
     
+    void heal()
+    {
+        hp_current += 1;
+        if (hp_current > hp_max) { hp_current = hp_max; }
+    }
+   
     
+protected:    // private attributes
+    std::string name;
+    int zone;
+    int position_x;
+    int position_y;
+    int health;
+    
+    // attributes
+    int strength, dexterity, intelligence;
+    
+    int hp_current, hp_max; // health is in percent
+    
+};
+
+class Monster : public Entity
+{
+public:
+    Monster(std::string a_name, int a_zone, int a_pos_x, int a_pos_y) : Entity(a_name, a_zone, a_pos_x, a_pos_y) {}
+};
+
+class Player : public Entity
+{
+public:
+    Player(std::string a_name, int a_zone, int a_pos_x, int a_pos_y) : Entity(a_name, a_zone, a_pos_x, a_pos_y) {}
+
     void store(void)
     {
         cape::Udc udc_player(CAPE_UDC_NODE);
@@ -137,24 +178,13 @@ public:     // public members
             
         } else { printf("File does not exist yet!\n"); }
     }
-    
-    
-private:    // private attributes
-    std::string name;
-    int zone;
-    int position_x;
-    int position_y;
-    int health;
-    
-    // attributes
-    int strength, dexterity, intelligence;
-    
-    int hp_current, hp_max; // health is in percent
-    
 };
 
-std::vector<Player> players;
 
+
+
+std::vector<Player> players;
+std::vector<Monster> monsters;
 
 //-----------------------------------------------------------------------------
 
@@ -323,9 +353,52 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                                 else if (!hit) { printf("but misses!\n"); }
                                 else  { printf("and causes %d damage!\n", damage); }
                                 
+                            } else // search monsters                            
+                            {
+                                
+                                std::vector<Monster>::iterator monster_it;     
+                                for (monster_it=monsters.begin(); monster_it!=monsters.end(); ++monster_it)
+                                {
+                                    if (( monster_it->get_position_x() == it->get_position_x() ) &&
+                                        ( monster_it->get_position_y() == it->get_position_y()))
+                                    { 
+                                        break; 
+                                    }
+                                }
+                                
+                                if (monster_it != monsters.end()) // found some monster to attack
+                                {
+                                    
+                                    int attack = it->create_attack();
+                                    printf("%s attacks %s with %d ", it->get_name().c_str(), monster_it->get_name().c_str(), attack);
+                                    int damage = it->create_damage();
+                                    bool hit = monster_it->is_attacked(attack, damage);
+                                    
+                                    if (monster_it->is_dead()) 
+                                    { 
+                                        printf("and wins!\n"); 
+                                        
+                                        // delete monster ...
+                                        
+                                    }
+                                    else if (!hit) { printf("but misses!\n"); }
+                                    else  { printf("and causes %d damage!\n", damage); }
+                                
+                                }
+                                
                             }
                             
                         }
+                        
+                        else if ("food" == player_cmd)
+                        {
+                            printf("Got food command!\n");
+                        
+                            it->heal();
+                        
+                        
+                        }
+                        
                     } // no new player
                     
                 } // valid player name
@@ -352,33 +425,94 @@ int __STDCALL main_on_json_players (void* user_ptr, QWebsRequest request, CapeEr
   if (cape_str_equal (method, "GET"))
   {
  
-    // build the player structure
-    printf("players list: %d\n", players.size());
-    
-    
-    //cape::Udc root_node(CAPE_UDC_NODE);  // too heavy to parse for now
-    cape::Udc udc_players_list(CAPE_UDC_LIST);
-  
-    
-    for(std::vector<Player>::iterator it=players.begin(); it!=players.end(); ++it)
-    {
-        cape::Udc udc_new_player(CAPE_UDC_NODE);
-        udc_new_player.add("name", it->get_name());
-        udc_new_player.add("zone", it->get_zone());
-        udc_new_player.add("position_x", it->get_position_x());
-        udc_new_player.add("position_y", it->get_position_y());
-        udc_new_player.add("health", it->calculate_health());
-        udc_players_list.add(udc_new_player); // too heavy to parse for now
-    } 
-    
-    //root_node.add("players", udc_players_list); // too heavy to parse for now
-    
-    
-    std::cout << "UDC to be sent: " <<  udc_players_list << std::endl;
       
-    
-    //qwebs_request_send_buf (&request, "[{\"name\":\"second request\"}]", "application/json", err);
-    qwebs_request_send_buf (&request, udc_players_list.to_string().c_str(), "application/json", err);
+    // 1. parse request 
+        
+        
+    // get the dictonary of the query part of the request
+    CapeMap query_values = qwebs_request_query (request);
+
+    if (query_values)
+    {
+
+        CapeMapNode name = cape_map_find(query_values, "name");
+        
+        if (name) 
+        {
+                
+            // retrieve the value
+            const CapeString value = (const CapeString)cape_map_node_value(name);
+
+            printf("received authentication name for entity list: %s\n", value);   
+      
+      
+            // find player
+            std::vector<Player>::iterator own_it;     
+            for (own_it=players.begin(); own_it!=players.end(); ++own_it)
+            {
+                if (own_it->get_name() == value) { break; }
+            }
+                 
+            if (own_it != players.end()) // player found
+            {
+        
+                
+                // build the player structure
+                printf("players list: %d\n", players.size());
+                
+                
+                //cape::Udc root_node(CAPE_UDC_NODE);  // too heavy to parse for now
+                cape::Udc udc_entity_list(CAPE_UDC_LIST);
+            
+                
+                for(std::vector<Player>::iterator it=players.begin(); it!=players.end(); ++it)
+                {
+                    
+                    // send only entities that are visible on the screen (1 is for border, 10 for extrapolation)
+                    if ((it->get_position_x() > (own_it->get_position_x() - DISPLAY_N_HALF - 11 )) &&
+                        (it->get_position_x() < (own_it->get_position_x() + DISPLAY_N_HALF + 11)) &&
+                        (it->get_position_y() > (own_it->get_position_y() - DISPLAY_M_HALF - 11)) &&
+                        (it->get_position_y() < (own_it->get_position_y() + DISPLAY_M_HALF + 11)))
+                    {
+                        cape::Udc udc_new_player(CAPE_UDC_NODE);
+                        udc_new_player.add("name", it->get_name());
+                        udc_new_player.add("zone", it->get_zone());
+                        udc_new_player.add("position_x", it->get_position_x());
+                        udc_new_player.add("position_y", it->get_position_y());
+                        udc_new_player.add("health", it->calculate_health());
+                        udc_entity_list.add(udc_new_player);
+                    }
+                } 
+                
+                for(std::vector<Monster>::iterator it=monsters.begin(); it!=monsters.end(); ++it)
+                {
+                    // send only entities that are visible on the screen (1 is for border, 10 for extrapolation)
+                    if ((it->get_position_x() > (own_it->get_position_x() - DISPLAY_N_HALF - 11)) &&
+                        (it->get_position_x() < (own_it->get_position_x() + DISPLAY_N_HALF + 11)) &&
+                        (it->get_position_y() > (own_it->get_position_y() - DISPLAY_M_HALF - 11)) &&
+                        (it->get_position_y() < (own_it->get_position_y() + DISPLAY_M_HALF + 11)))
+                    {
+                        cape::Udc udc_new_monster(CAPE_UDC_NODE);
+                        udc_new_monster.add("name", it->get_name());
+                        udc_new_monster.add("zone", it->get_zone());
+                        udc_new_monster.add("position_x", it->get_position_x());
+                        udc_new_monster.add("position_y", it->get_position_y());
+                        udc_new_monster.add("health", it->calculate_health());
+                        udc_entity_list.add(udc_new_monster); 
+                    }
+                } 
+                
+                //root_node.add("players", udc_entity_list); // too heavy to parse for now
+                
+                
+                //std::cout << "UDC to be sent: " <<  udc_entity_list << std::endl;
+                
+                
+                //qwebs_request_send_buf (&request, "[{\"name\":\"second request\"}]", "application/json", err);
+                qwebs_request_send_buf (&request, udc_entity_list.to_string().c_str(), "application/json", err);
+            }  
+        } 
+    }
   }
 
   return CAPE_ERR_CONTINUE;
@@ -387,6 +521,17 @@ int __STDCALL main_on_json_players (void* user_ptr, QWebsRequest request, CapeEr
 
 static int __STDCALL callback__on_timer(void* ptr)
 {
+    
+  // move monsters
+  
+  for(std::vector<Monster>::iterator monster_it=monsters.begin(); monster_it!=monsters.end(); ++monster_it)
+  {
+      monster_it->move_left();
+  }
+
+    
+  // store players
+    
   try
   {
     //static_cast<GVCPDevice*> (ptr)->on_timer();
@@ -437,7 +582,7 @@ int main (int argc, char *argv[])
   
   CapeAioTimer timer = cape_aio_timer_new();
   
-  res = cape_aio_timer_set (timer, 10000, NULL, callback__on_timer, err);
+  res = cape_aio_timer_set (timer, 5000, NULL, callback__on_timer, err);
   if(res){
     goto exit_and_cleanup;
   }
@@ -487,6 +632,10 @@ int main (int argc, char *argv[])
     goto exit_and_cleanup;
   }
   
+  // prepare monsters
+  for (int i=0; i<3000; ++i) monsters.push_back(Monster("rat", 0, rand() % 1000, rand() % 1000));
+  
+  
 
   /*
   res = qwebs_reg_page (webs, "hidden.htm", NULL, main_on_page, err);
@@ -525,3 +674,6 @@ exit_and_cleanup:
 
 //-----------------------------------------------------------------------------
 
+// todo:
+// clear players and monsters at destruction
+// improve heal/food function (level based)
