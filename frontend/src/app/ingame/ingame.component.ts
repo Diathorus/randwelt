@@ -16,7 +16,8 @@ export class IngameComponent implements OnInit
   display_human_own_player : string = "1";
   display_human_other_player : string = "2";
   display_monster_rat : string = ";";
-
+  display_monster_bush : string = "a";
+  display_monster_dronte : string = "*";
 
   html_answer_1: string;
   html_answer_2: string;
@@ -57,7 +58,7 @@ export class IngameComponent implements OnInit
     // set up timer
     this.interval = setInterval(() => {
       this.requestPlayersFromServer();
-    }, 5000)
+    }, 3000)
 
   }
 
@@ -1075,6 +1076,8 @@ export class IngameComponent implements OnInit
       if ((index_n >= 0) && (index_n < this.VOLUME_N) && (index_m >= 0) && (index_m < this.VOLUME_M))
       {
         if (this.players[j].name == "rat") { this.final_matrix[index_m][index_n] = this.display_monster_rat; }
+        else if (this.players[j].name == "bush") { this.final_matrix[index_m][index_n] = this.display_monster_bush; }
+        else if (this.players[j].name == "dronte") { this.final_matrix[index_m][index_n] = this.display_monster_dronte; }
 
         else if (this.players[j].name != this.authentication) // display not myself (we come later)
         {
