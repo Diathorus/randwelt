@@ -123,8 +123,19 @@ protected:    // private attributes
 
 class Monster : public Entity
 {
+private:
+    int m_view_x;
+    int m_view_y;
+    
 public:
-    Monster(std::string a_name, int a_zone, int a_pos_x, int a_pos_y) : Entity(a_name, a_zone, a_pos_x, a_pos_y) {}
+    Monster(std::string a_name, int a_zone, int a_pos_x, int a_pos_y, int a_view_x, int a_view_y) : 
+        Entity(a_name, a_zone, a_pos_x, a_pos_y) 
+        {
+            m_view_x = a_view_x; if (m_view_x < 0) { m_view_x = 0; }
+            m_view_y = a_view_y; if (m_view_y < 0) { m_view_y = 0; }
+        }
+    int get_view_x() { return m_view_x; }
+    int get_view_y() { return m_view_y; }
 };
 
 class Player : public Entity
@@ -328,66 +339,77 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                         {
                             printf("Got attack command!\n");
                             
-                            // finding player
+                            // finding player or monster
+                            int index_other_player = -1;
+                            int index_other_monster = -1;
                             
-                            std::vector<Player>::iterator other_player_it;     
-                            for (other_player_it=players.begin(); other_player_it!=players.end(); ++other_player_it)
+                            for (int i=0; i<players.size(); ++i)
                             {
-                                if  ((other_player_it->get_name() != player_name) && 
-                                    ( other_player_it->get_position_x() == it->get_position_x() ) &&
-                                    ( other_player_it->get_position_y() == it->get_position_y()))
-                                { 
-                                    break; 
+                                if ((player_name != players[i].get_name()) &&
+                                    (it->get_position_x() == players[i].get_position_x()) &&
+                                    (it->get_position_y() == players[i].get_position_y()))
+                                {
+                                    index_other_player = i;
+                                    break;
                                 }
                             }
-                        
-                            if (other_player_it != players.end()) // found some player to attack
+                            
+                            if (index_other_player == -1)
                             {
+                                printf("how many monsters: %d\n", monsters.size());
+                                    
+                                for (int i=0; i<monsters.size(); ++i)
+                                {
+                                    if ((it->get_position_x() == monsters[i].get_position_x()) &&
+                                        (it->get_position_y() == monsters[i].get_position_y()))
+                                    {
+                                        index_other_monster = i;
+                                        printf("\nfound monster!!!\n");
+                                        break;
+                                    }
+                                        
+                                }  
+                            }
+                            
+                            // found enemy -> fight
+                            if ((index_other_player > -1) || (index_other_monster > -1)) 
+                            { 
                                 
                                 int attack = it->create_attack();
-                                printf("%s attacks player %s with %d ", it->get_name().c_str(), other_player_it->get_name().c_str(), attack);
+                                
+                                printf("%s attacks %s with %d ", it->get_name().c_str(), 
+                                       (index_other_player > -1)?players[index_other_player].get_name().c_str():
+                                        monsters[index_other_monster].get_name().c_str(), attack);
+                                
                                 int damage = it->create_damage();
-                                bool hit = other_player_it->is_attacked(attack, damage);
                                 
-                                if (other_player_it->is_dead()) { printf("and wins!\n"); }
-                                else if (!hit) { printf("but misses!\n"); }
-                                else  { printf("and causes %d damage!\n", damage); }
+                                bool hit = false;
                                 
-                            } else // search monsters                            
-                            {
-                                
-                                std::vector<Monster>::iterator monster_it;     
-                                for (monster_it=monsters.begin(); monster_it!=monsters.end(); ++monster_it)
+                                if (index_other_player > -1) { hit = players[index_other_player].is_attacked(attack, damage); }
+                                else if (index_other_monster > -1) { hit = monsters[index_other_monster].is_attacked(attack, damage); }
+          
+                                if (index_other_player > -1)
                                 {
-                                    if (( monster_it->get_position_x() == it->get_position_x() ) &&
-                                        ( monster_it->get_position_y() == it->get_position_y()))
-                                    { 
-                                        break; 
-                                    }
-                                }
-                                
-                                if (monster_it != monsters.end()) // found some monster to attack
+                                    if (players[index_other_player].is_dead()) { printf("and wins!\n"); }
+                                    else if (!hit) { printf("but misses!\n"); }
+                                    else  { printf("and causes %d damage!\n", damage); }                                    
+                                } else if (index_other_monster > -1)
                                 {
                                     
-                                    int attack = it->create_attack();
-                                    printf("%s attacks %s with %d ", it->get_name().c_str(), monster_it->get_name().c_str(), attack);
-                                    int damage = it->create_damage();
-                                    bool hit = monster_it->is_attacked(attack, damage);
-                                    
-                                    if (monster_it->is_dead()) 
+                                    if (monsters[index_other_monster].is_dead())
                                     { 
                                         printf("and wins!\n"); 
                                         
-                                        // delete monster ...
+                                        // delete monster
+                                        monsters[index_other_monster] = monsters[monsters.size()-1];
+                                        monsters.pop_back();
                                         
                                     }
                                     else if (!hit) { printf("but misses!\n"); }
-                                    else  { printf("and causes %d damage!\n", damage); }
-                                
+                                    else  { printf("and causes %d damage!\n", damage); }                               
+                                    
                                 }
-                                
-                            }
-                            
+                            } 
                         }
                         
                         else if ("food" == player_cmd)
@@ -522,11 +544,73 @@ int __STDCALL main_on_json_players (void* user_ptr, QWebsRequest request, CapeEr
 static int __STDCALL callback__on_timer(void* ptr)
 {
     
-  // move monsters
+    // move monsters
   
-  for(std::vector<Monster>::iterator monster_it=monsters.begin(); monster_it!=monsters.end(); ++monster_it)
-  {
-      monster_it->move_left();
+    for(std::vector<Monster>::iterator monster_it=monsters.begin(); monster_it!=monsters.end(); ++monster_it)
+    {
+            
+        // find player
+        int index_player = -1;
+                            
+        // todo: move KI into monster class
+        for (int i=0; i<players.size(); ++i)
+        {
+            if ((monster_it->get_position_x() > (players[i].get_position_x() - monster_it->get_view_x())) &&
+                (monster_it->get_position_x() < (players[i].get_position_x() + monster_it->get_view_x())) &&
+                (monster_it->get_position_y() > (players[i].get_position_y() - monster_it->get_view_y())) &&
+                (monster_it->get_position_y() < (players[i].get_position_y() + monster_it->get_view_y())))
+            {
+                //printf("found player (%d, %d): %d\n", monster_it->get_position_x(), monster_it->get_position_y(), i);
+                index_player = i;
+                break;
+            }
+        }
+      
+        if (index_player == -1) // nothing found -> walk randomly at 1-4, rest at 5-6
+        {
+            int r = rand() % 6;
+                 if (1 == r) { monster_it->move_left(); }
+            else if (2 == r) { monster_it->move_right(); }
+            else if (3 == r) { monster_it->move_up(); }
+            else if (4 == r) { monster_it->move_down(); }
+          
+        }
+        else // move to player and attack
+        {           
+              
+            if ((monster_it->get_position_x() == players[index_player].get_position_x()) &&
+                (monster_it->get_position_y() == players[index_player].get_position_y()))
+            {
+                // monster attacks player
+                
+                int attack = monster_it->create_attack();                                
+                printf("%s attacks %s with %d ", monster_it->get_name().c_str(), players[index_player].get_name().c_str(), attack);
+                int damage = monster_it->create_damage();
+                bool hit = players[index_player].is_attacked(attack, damage); 
+
+                if (players[index_player].is_dead()) { printf("and wins!\n"); }
+                else if (!hit) { printf("but misses!\n"); }
+                else  { printf("and causes %d damage!\n", damage); }                            
+                
+            }
+            else
+            {
+                // movement (straight forward)
+                
+                     if (monster_it->get_position_x() > players[index_player].get_position_x()) { monster_it->move_left(); }
+                else if (monster_it->get_position_x() < players[index_player].get_position_x()) { monster_it->move_right(); }
+                     if (monster_it->get_position_y() > players[index_player].get_position_y()) { monster_it->move_down(); }
+                else if (monster_it->get_position_y() < players[index_player].get_position_y()) { monster_it->move_up(); }
+                
+            }
+            
+        }
+      
+      
+      
+      
+      
+      
   }
 
     
@@ -582,7 +666,7 @@ int main (int argc, char *argv[])
   
   CapeAioTimer timer = cape_aio_timer_new();
   
-  res = cape_aio_timer_set (timer, 5000, NULL, callback__on_timer, err);
+  res = cape_aio_timer_set (timer, 3000, NULL, callback__on_timer, err);
   if(res){
     goto exit_and_cleanup;
   }
@@ -633,8 +717,10 @@ int main (int argc, char *argv[])
   }
   
   // prepare monsters
-  for (int i=0; i<3000; ++i) monsters.push_back(Monster("rat", 0, rand() % 1000, rand() % 1000));
-  
+  for (int i=0; i<3000; ++i) monsters.push_back(Monster("rat", 0, rand() % 1000, rand() % 1000, 12, 3));
+  for (int i=0; i<3000; ++i) monsters.push_back(Monster("bush", 0, rand() % 1000, rand() % 1000, 12, 3));
+  for (int i=0; i<3000; ++i) monsters.push_back(Monster("dronte", 0, rand() % 1000, rand() % 1000, 12, 3));
+
   
 
   /*
@@ -675,5 +761,4 @@ exit_and_cleanup:
 //-----------------------------------------------------------------------------
 
 // todo:
-// clear players and monsters at destruction
 // improve heal/food function (level based)
