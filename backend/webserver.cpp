@@ -6,13 +6,8 @@
 #include <aio/cape_aio_timer.h>
 #include <sys/cape_err.h>
 #include <sys/cape_log.h>
-#include <fmt/cape_json.h>
 
-#include <hpp/cape_stc.hpp>
 
-#include <iostream>
-#include <fstream> 
-#include <string>
 #include <vector>
 
 //#include <ctype.h>
@@ -21,20 +16,13 @@
 #include <unistd.h>
 
 
-#define VOLUME_SECTOR_MAX_X 1000
-#define VOLUME_SECTOR_MAX_Y 1000
+// constant that should be known also in entity module
+
 
 #define DISPLAY_M_HALF 5
 #define DISPLAY_N_HALF 20
 
-//-----------------------------------------------------------------------------
-// todo:
-// - Frontend Timer (Player Request)
-// - PVP
-// - Monster
-// - more Sectors
-// - Weltmatrix-Transfer
-//-----------------------------------------------------------------------------
+#include "entity.h"
 
 
 // this shall become the WorldManager
@@ -43,153 +31,7 @@ int get_zone(int a_sector_x, int a_sector_y)
     return 0;
 }
 
-
-class Entity
-{
-    
-public:     // public members
-    
-    Entity(std::string a_name, int a_zone, int a_pos_x, int a_pos_y)
-    {
-        name = a_name;
-        zone = a_zone;
-        position_x = a_pos_x;
-        position_y = a_pos_y;
-        
-        hp_current = 4;
-        hp_max = 4;
-        health = calculate_health();
-        
-        strength = 0;
-        dexterity = 0;
-        intelligence = 0;
-        
-    }
-    
-    std::string get_name() { return name; }
-    int get_zone() { return zone; }
-    int get_position_x() { return position_x; }
-    int get_position_y() { return position_y; }
-
-    int get_hp_current() { return hp_current; }
-    int get_hp_max() { return hp_max; }
-    int calculate_health() { health = hp_current * 100 / hp_max; return health; }
-    bool is_dead() { return hp_current <= 0; }
-    
-    int get_strength() { return strength; }
-    int get_dexterity() { return dexterity; }
-    int get_intelligence() { return intelligence; }
-    
-    int calculate_armor() { return get_dexterity(); }
-    int calculate_weapon() { return 1; }
-    int create_attack() { return rand() % 20 + 1 + get_dexterity(); }
-    int create_damage() { int damage = rand() * calculate_weapon() / RAND_MAX + 1 + get_strength(); if (damage < 0) { damage = 0; } return damage; }
-    
-    void set_position(int a_x, int a_y) { position_x = a_x; position_y = a_y; }
-    void move_right() { position_x++; if (position_x > VOLUME_SECTOR_MAX_X)  { position_x = VOLUME_SECTOR_MAX_X; } }
-    void move_left()  { position_x--; if (position_x < 0)                    { position_x = 0; } }
-    void move_up()    { position_y++; if (position_y > VOLUME_SECTOR_MAX_Y)  { position_y = VOLUME_SECTOR_MAX_Y; } }
-    void move_down()  { position_y--; if (position_y < 0)                    { position_y = 0; } }
-    
-    
-    bool is_attacked(int a_attack, int a_damage)
-    {
-        bool hit = false;
-        if (a_attack >= 10 + calculate_armor()) { hit = true; }
-        if (hit) { hp_current -= a_damage; }
-        return hit;
-    }
-    
-    void heal()
-    {
-        hp_current += 1;
-        if (hp_current > hp_max) { hp_current = hp_max; }
-    }
-   
-    
-protected:    // private attributes
-    std::string name;
-    int zone;
-    int position_x;
-    int position_y;
-    int health;
-    
-    // attributes
-    int strength, dexterity, intelligence;
-    
-    int hp_current, hp_max; // health is in percent
-    
-};
-
-class Monster : public Entity
-{
-private:
-    int m_view_x;
-    int m_view_y;
-    
-public:
-    Monster(std::string a_name, int a_zone, int a_pos_x, int a_pos_y, int a_view_x, int a_view_y) : 
-        Entity(a_name, a_zone, a_pos_x, a_pos_y) 
-        {
-            m_view_x = a_view_x; if (m_view_x < 0) { m_view_x = 0; }
-            m_view_y = a_view_y; if (m_view_y < 0) { m_view_y = 0; }
-        }
-    int get_view_x() { return m_view_x; }
-    int get_view_y() { return m_view_y; }
-};
-
-class Player : public Entity
-{
-public:
-    Player(std::string a_name, int a_zone, int a_pos_x, int a_pos_y) : Entity(a_name, a_zone, a_pos_x, a_pos_y) {}
-
-    void store(void)
-    {
-        cape::Udc udc_player(CAPE_UDC_NODE);
-        udc_player.add("name", name);
-        udc_player.add("zone", zone);
-        udc_player.add("position_x", position_x);
-        udc_player.add("position_y", position_y);
-        udc_player.add("hp_current", hp_current);
-        udc_player.add("hp_max",     hp_max);
-        udc_player.add("strength",   strength);
-        udc_player.add("dexterity",  dexterity);
-        udc_player.add("intelligence", intelligence);
-
-        std::string to_file = udc_player.to_string();
-        std::ofstream MyFile("save_players/" + name + ".txt");
-        MyFile << to_file;
-        MyFile.close();
-    }
-    
-    void load(void)
-    {
-        CapeErr err;
-        std::string filename = "save_players/" + name + ".txt";
-        
-        // check existance of savegame
-        std::ifstream myFile;
-        myFile.open(filename.c_str());
-        if(myFile) 
-        {
-            
-            myFile.close();
-            printf("loading player from %s ... ", filename.c_str()); 
-                       
-            cape::Udc content = cape_json_from_file (filename.c_str(), err);
-            
-            if (content.get("position_x").valid())  { position_x    = content.get("position_x"); }
-            if (content.get("position_y").valid())  { position_y    = content.get("position_y"); }
-            if (content.get("zone").valid())        { zone          = content.get("zone"); }
-            if (content.get("hp_current").valid())  { hp_current    = content.get("hp_current"); }
-            if (content.get("hp_max").valid())      { hp_max        = content.get("hp_max"); }
-            if (content.get("strength").valid())    { strength      = content.get("strength"); }
-            if (content.get("dexterity").valid())   { dexterity     = content.get("dexterity"); }
-            if (content.get("intelligence").valid()) { intelligence = content.get("intelligence"); }
-            
-        } else { printf("File does not exist yet!\n"); }
-    }
-};
+int get_sector_food(void) { return 10; }
 
 
 
@@ -250,6 +92,10 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                     udc_player_stats.add("intelligence", it->get_intelligence());
                     udc_player_stats.add("armor", it->calculate_armor());
                     udc_player_stats.add("weapon", it->calculate_weapon());
+                    udc_player_stats.add("level", it->get_level());
+                    udc_player_stats.add("experience", it->get_experience());
+                    udc_player_stats.add("next_experience", it->get_next_experience());
+                    udc_player_stats.add("give_points", it->get_give_attribute_points());
                     
                     udc_players_list.add(udc_player_stats);
 
@@ -319,7 +165,7 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                     {
                         if (it->get_name() == player_name) 
                         { 
-                            it->set_position(player_x, player_y);
+                            //it->set_position(player_x, player_y);
                             break; 
                         }
                     }
@@ -335,9 +181,18 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                     {
                     
                         // =========== work on commands ============
-                        if ("attack" == player_cmd)
+                        
+                             if ("move_east" == player_cmd) { it->move_right(); }
+                        else if ("move_west" == player_cmd) { it->move_left(); }
+                        else if ("move_north" == player_cmd) { it->move_up(); }
+                        else if ("move_south" == player_cmd) { it->move_down(); }
+                        
+                        else if ("give_strength" == player_cmd) { it->give_strength(); }
+                        else if ("give_dexterity" == player_cmd) { it->give_dexterity(); }
+                        else if ("give_intelligence" == player_cmd) { it->give_intelligence(); }
+                        
+                        else if ("attack" == player_cmd)
                         {
-                            printf("Got attack command!\n");
                             
                             // finding player or monster
                             int index_other_player = -1;
@@ -356,7 +211,7 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                             
                             if (index_other_player == -1)
                             {
-                                printf("how many monsters: %d\n", monsters.size());
+                                //printf("how many monsters: %d\n", monsters.size());
                                     
                                 for (int i=0; i<monsters.size(); ++i)
                                 {
@@ -364,7 +219,6 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                                         (it->get_position_y() == monsters[i].get_position_y()))
                                     {
                                         index_other_monster = i;
-                                        printf("\nfound monster!!!\n");
                                         break;
                                     }
                                         
@@ -400,6 +254,9 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                                     { 
                                         printf("and wins!\n"); 
                                         
+                                        // give xp
+                                        it->boost_xp(monsters[index_other_monster].get_give_xp());
+                                        
                                         // delete monster
                                         monsters[index_other_monster] = monsters[monsters.size()-1];
                                         monsters.pop_back();
@@ -414,9 +271,12 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                         
                         else if ("food" == player_cmd)
                         {
-                            printf("Got food command!\n");
-                        
-                            it->heal();
+                            
+                            int roll = rand() % 20 + 1;
+                            if (roll >= get_sector_food() - it->get_level())
+                            {
+                                if (roll == 20) { it->heal(rand()%6+1); } else { it->heal(1); }
+                            }
                         
                         
                         }
@@ -717,11 +577,11 @@ int main (int argc, char *argv[])
   }
   
   // prepare monsters
-  for (int i=0; i<3000; ++i) monsters.push_back(Monster("rat", 0, rand() % 1000, rand() % 1000, 12, 3));
-  for (int i=0; i<3000; ++i) monsters.push_back(Monster("bush", 0, rand() % 1000, rand() % 1000, 12, 3));
-  for (int i=0; i<3000; ++i) monsters.push_back(Monster("dronte", 0, rand() % 1000, rand() % 1000, 12, 3));
-
-  
+  for (int i=0; i<3000; ++i) monsters.push_back(Monster("rat",      0, rand() % 1000, rand() % 1000, 12, 3, 0, -5, 0, 1, 1));
+  for (int i=0; i<3000; ++i) monsters.push_back(Monster("dronte",   0, rand() % 1000, rand() % 1000, 12, 3, 0, -3, 0, 2, 2));
+  for (int i=0; i<3000; ++i) monsters.push_back(Monster("bush",     0, rand() % 1000, rand() % 1000, 12, 3, 0, -1, 0, 3, 3));
+ 
+ 
 
   /*
   res = qwebs_reg_page (webs, "hidden.htm", NULL, main_on_page, err);
@@ -761,4 +621,11 @@ exit_and_cleanup:
 //-----------------------------------------------------------------------------
 
 // todo:
-// improve heal/food function (level based)
+// timeout (frontend) after each action
+// sectors with monsters
+// server delivers sectors
+// dungeons
+// collecting
+// inventory
+// crafting
+// magic

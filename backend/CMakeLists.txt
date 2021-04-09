@@ -12,6 +12,7 @@ link_directories("${BASE_DIR}/build/qbus_collection/libs/qwebs/src/")
 
 set(SRV_SOURCES
     webserver.cpp
+    entity.cpp
 )
 
 set(SRV_HEADERS
