@@ -48,7 +48,10 @@ export class IngameComponent implements OnInit
   own_intelligence : number = 7;
   own_armor : number = 7;
   own_weapon : number = 7;
-
+  own_level : number = 7;
+  own_experience : number = 7;
+  own_next_experience : number = 7;
+  own_give_points : number = 7;
 
   constructor(private http: HttpClient)
   {
@@ -86,6 +89,10 @@ export class IngameComponent implements OnInit
       this.own_intelligence = data[0].intelligence;
       this.own_armor        = data[0].armor;
       this.own_weapon       = data[0].weapon;
+      this.own_level        = data[0].level;
+      this.own_experience   = data[0].experience;
+      this.own_next_experience = data[0].next_experience;
+      this.own_give_points = data[0].give_points;
 
     },
     (error) => {                                   //Error callback
@@ -962,10 +969,10 @@ export class IngameComponent implements OnInit
 
   // functions for the frontend (do not move to the server!)
 
-  onMoveWest()  { if (this.own_player_x > 0)                            { this.own_player_x--; this.moveMatrixRight();  this.applyPlayersToMatrix(); this.requestHTTP("move"); } }
-  onMoveEast()  { if (this.own_player_x < this.VOLUME_SECTOR_MAX_X-1)   { this.own_player_x++; this.moveMatrixLeft();   this.applyPlayersToMatrix(); this.requestHTTP("move"); } }
-  onMoveSouth() { if (this.own_player_y > 0)                            { this.own_player_y--; this.moveMatrixUp();     this.applyPlayersToMatrix(); this.requestHTTP("move"); } }
-  onMoveNorth() { if (this.own_player_y < this.VOLUME_SECTOR_MAX_Y-1)   { this.own_player_y++; this.moveMatrixDown();   this.applyPlayersToMatrix(); this.requestHTTP("move"); } }
+  onMoveWest()  { if (this.own_player_x > 0)                            { this.own_player_x--; this.moveMatrixRight();  this.applyPlayersToMatrix(); this.requestHTTP("move_west"); } }
+  onMoveEast()  { if (this.own_player_x < this.VOLUME_SECTOR_MAX_X-1)   { this.own_player_x++; this.moveMatrixLeft();   this.applyPlayersToMatrix(); this.requestHTTP("move_east"); } }
+  onMoveSouth() { if (this.own_player_y > 0)                            { this.own_player_y--; this.moveMatrixUp();     this.applyPlayersToMatrix(); this.requestHTTP("move_south"); } }
+  onMoveNorth() { if (this.own_player_y < this.VOLUME_SECTOR_MAX_Y-1)   { this.own_player_y++; this.moveMatrixDown();   this.applyPlayersToMatrix(); this.requestHTTP("move_north"); } }
 
   createWorld(zone : number)
   {
@@ -1099,6 +1106,21 @@ export class IngameComponent implements OnInit
   onFood()
   {
     this.requestHTTP("food");
+  }
+
+  onGiveStrength()
+  {
+    this.requestHTTP("give_strength");
+  }
+
+  onGiveDexterity()
+  {
+    this.requestHTTP("give_dexterity");
+  }
+
+  onGiveIntelligence()
+  {
+    this.requestHTTP("give_intelligence");
   }
 
 }

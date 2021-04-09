@@ -27,12 +27,15 @@
 
       <!-- meal: {{ hunger }} -->
 
-      <p>hp: {{ own_hp_current }} / {{ own_hp_max }}<br>
-      strength: {{ own_strength }}, dexterity: {{ own_dexterity }}, intelligence: {{ own_intelligence }} <br>
-      armor: {{ own_armor }} + {{ own_dexterity }},
-      damage: {{ own_weapon }} + {{ own_strength }},
+      <p>hp: {{ own_hp_current }} / {{ own_hp_max }}, level: {{ own_level }}, xp: {{ own_experience }}, next: {{ own_next_experience }}<br>
+      strength: {{ own_strength }}, dexterity: {{ own_dexterity }}, intelligence: {{ own_intelligence }}
+        <button *ngIf="own_give_points > 0" style="font-size: 8px; border-radius: 50%" (click)="onGiveStrength()">S++</button>
+        <button *ngIf="own_give_points > 0" style="font-size: 8px; border-radius: 50%" (click)="onGiveDexterity()">D++</button>
+        <button *ngIf="own_give_points > 0" style="font-size: 8px; border-radius: 50%" (click)="onGiveIntelligence()">I++</button>
 
-      coins: {{ coins }}, next: {{ next_coins }}
+        <br>
+      armor: {{ own_armor }} + {{ own_dexterity }},
+      damage: {{ own_weapon }} + {{ own_strength }} <br>
       </p>
 
     </div><br>
