@@ -26,6 +26,7 @@ bool Entity::is_attacked(int a_attack, int a_damage)
     bool hit = false;
     if (a_attack >= 10 + calculate_armor()) { hit = true; }
     if (hit) { hp_current -= a_damage; }
+    if (hp_current < 0) { hp_current = 0; }
     return hit;
 }
     
@@ -45,6 +46,7 @@ Player::Player(std::string a_name, int a_zone, int a_pos_x, int a_pos_y) : Entit
     experience = 0;
     next_experience = 0;
     give_attribute_points = 0;
+    status_message = "Welcome " + a_name + "!";
 }
 
 void Player::store(void)

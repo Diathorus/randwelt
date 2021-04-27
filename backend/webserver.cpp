@@ -39,6 +39,17 @@ int get_sector_food(void) { return 10; }
 std::vector<Player> players;
 std::vector<Monster> monsters;
 
+
+static long g_webserver_timer_counter = 0;
+
+
+/* World Manager */
+
+
+int world[1000][1000];
+
+
+
 //-----------------------------------------------------------------------------
 
 int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
@@ -96,6 +107,7 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                     udc_player_stats.add("experience", it->get_experience());
                     udc_player_stats.add("next_experience", it->get_next_experience());
                     udc_player_stats.add("give_points", it->get_give_attribute_points());
+                    udc_player_stats.add("message", it->get_status_message());
                     
                     udc_players_list.add(udc_player_stats);
 
@@ -119,6 +131,7 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
     {
         
         // analyze request ....
+        bool world_requested = false;
         
         CapeStream h = qwebs_request_body (request);
     
@@ -136,9 +149,7 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
 
             
             if ((false == content.get("player_name").valid()) ||
-                (false == content.get("command").valid()) ||
-                (false == content.get("player_x").valid()) ||
-                (false == content.get("player_y").valid()))
+                (false == content.get("command").valid()))
             {
                 printf("Problem!\n");
             } else
@@ -149,11 +160,11 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                 std::string player_cmd = content.get("command");
                 printf("player command: %s\n", player_cmd.c_str());
                 
-                int player_x = content.get("player_x");
+                /*int player_x = content.get("player_x");
                 printf("player x: %d\n", player_x);
 
                 int player_y = content.get("player_y");
-                printf("player y: %d\n", player_y);
+                printf("player y: %d\n", player_y);*/
                 
                 // find player index
                 
@@ -173,7 +184,7 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                     // there is a new player!
                     if (it == players.end())
                     {                           
-                        players.push_back(Player(player_name, 0, player_x, player_y));
+                        players.push_back(Player(player_name, 0, 500, 500));
                         players[players.size()-1].load(); // try to load (if savegame exists)
                         
                     } else // old player, solve commands:
@@ -182,10 +193,10 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                     
                         // =========== work on commands ============
                         
-                             if ("move_east" == player_cmd) { it->move_right(); }
-                        else if ("move_west" == player_cmd) { it->move_left(); }
-                        else if ("move_north" == player_cmd) { it->move_up(); }
-                        else if ("move_south" == player_cmd) { it->move_down(); }
+                             if ("move_east" == player_cmd) { world_requested = true; it->move_right(); }
+                        else if ("move_west" == player_cmd) { world_requested = true; it->move_left(); }
+                        else if ("move_north" == player_cmd) { world_requested = true; it->move_up(); }
+                        else if ("move_south" == player_cmd) { world_requested = true; it->move_down(); }
                         
                         else if ("give_strength" == player_cmd) { it->give_strength(); }
                         else if ("give_dexterity" == player_cmd) { it->give_dexterity(); }
@@ -231,6 +242,11 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                                 
                                 int attack = it->create_attack();
                                 
+                                std::string l_message = "You attack ";
+                                l_message += (index_other_player > -1)?players[index_other_player].get_name():monsters[index_other_monster].get_name().c_str();
+                                l_message += " with ";
+                                l_message += std::to_string(attack);
+                                
                                 printf("%s attacks %s with %d ", it->get_name().c_str(), 
                                        (index_other_player > -1)?players[index_other_player].get_name().c_str():
                                         monsters[index_other_monster].get_name().c_str(), attack);
@@ -244,15 +260,16 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
           
                                 if (index_other_player > -1)
                                 {
-                                    if (players[index_other_player].is_dead()) { printf("and wins!\n"); }
-                                    else if (!hit) { printf("but misses!\n"); }
-                                    else  { printf("and causes %d damage!\n", damage); }                                    
+                                    if (players[index_other_player].is_dead()) { printf("and wins!\n"); l_message += " and win!"; }
+                                    else if (!hit) { printf("but misses!\n"); l_message += " but miss!"; }
+                                    else  { printf("and causes %d damage!\n", damage); l_message += " and cause "; l_message += std::to_string(damage); l_message += " damage!"; }                                  
                                 } else if (index_other_monster > -1)
                                 {
                                     
                                     if (monsters[index_other_monster].is_dead())
                                     { 
                                         printf("and wins!\n"); 
+                                        l_message += " and win!";
                                         
                                         // give xp
                                         it->boost_xp(monsters[index_other_monster].get_give_xp());
@@ -262,10 +279,15 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                                         monsters.pop_back();
                                         
                                     }
-                                    else if (!hit) { printf("but misses!\n"); }
-                                    else  { printf("and causes %d damage!\n", damage); }                               
+                                    else if (!hit) { printf("but misses!\n"); l_message += " but miss!"; }
+                                    else  { printf("and causes %d damage!\n", damage); l_message += " and cause "; l_message += std::to_string(damage); l_message += " damage!"; }                             
                                     
                                 }
+                                
+                                it->set_status_message(l_message);
+
+                                
+                                
                             } 
                         }
                         
@@ -276,6 +298,11 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                             if (roll >= get_sector_food() - it->get_level())
                             {
                                 if (roll == 20) { it->heal(rand()%6+1); } else { it->heal(1); }
+                                it->set_status_message("You found some food!");
+                            }
+                            else
+                            {
+                                it->set_status_message("You found nothing!");
                             }
                         
                         
@@ -283,12 +310,51 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                         
                     } // no new player
                     
+                    if (true == world_requested)
+                    {
+                        
+                        cape::Udc udc_world(CAPE_UDC_LIST);
+                    
+                        for (int m=it->get_position_y()+DISPLAY_M_HALF; m>=it->get_position_y()-DISPLAY_M_HALF; m--)
+                        {
+                            
+                            cape::Udc udc_line(CAPE_UDC_LIST);
+                            
+                            for (int n=it->get_position_x()-DISPLAY_N_HALF; n<it->get_position_x()+DISPLAY_N_HALF; n++) // column
+                            {
+                                cape::Udc udc_voxel(CAPE_UDC_NODE);
+                                udc_voxel.add("x", n);
+                                udc_voxel.add("y", m);
+                                
+                                if ((m < 0) || (n < 0) || (m >= 1000) || (n >= 1000)) udc_voxel.add("v", 0);
+                                else udc_voxel.add("v", world[m][n]);
+                                
+                                udc_line.add(udc_voxel);
+                            }
+                            
+                            udc_world.add(udc_line);
+                        }
+                                
+                        std::cout << "UDC to be sent: " <<  udc_world << std::endl;
+
+                        
+                        qwebs_request_send_buf (&request, udc_world.to_string().c_str(), "application/json", err);
+
+                    }
+                    
+                    
+                    
                 } // valid player name
             }
+            
         }
         
-        //CapeStream h = qwebs_request_body (request);
-        qwebs_request_send_buf (&request, "[{\"name\":\"danger zone\"}]", "application/json", err);
+        if (false == world_requested)   // send dummy answer
+        {
+            
+            //CapeStream h = qwebs_request_body (request);
+            qwebs_request_send_buf (&request, "[{\"name\":\"danger zone\"}]", "application/json", err);
+        }
         
     }
 
@@ -384,13 +450,7 @@ int __STDCALL main_on_json_players (void* user_ptr, QWebsRequest request, CapeEr
                     }
                 } 
                 
-                //root_node.add("players", udc_entity_list); // too heavy to parse for now
-                
-                
                 //std::cout << "UDC to be sent: " <<  udc_entity_list << std::endl;
-                
-                
-                //qwebs_request_send_buf (&request, "[{\"name\":\"second request\"}]", "application/json", err);
                 qwebs_request_send_buf (&request, udc_entity_list.to_string().c_str(), "application/json", err);
             }  
         } 
@@ -404,11 +464,28 @@ int __STDCALL main_on_json_players (void* user_ptr, QWebsRequest request, CapeEr
 static int __STDCALL callback__on_timer(void* ptr)
 {
     
+    printf("on timer: %d\n", g_webserver_timer_counter);
+    
+    g_webserver_timer_counter += 1;
+    if (g_webserver_timer_counter > 10) // after 10 * 3 seconds
+    { 
+        g_webserver_timer_counter = 0; 
+        
+        // store players (choose one randomly)
+        if (players.size() > 0)
+        {
+            int r = rand() % players.size();
+            printf("storing player %s\n", players[r].get_name().c_str());
+            players[r].store();
+        }
+
+    }
+    
     // move monsters
   
     for(std::vector<Monster>::iterator monster_it=monsters.begin(); monster_it!=monsters.end(); ++monster_it)
     {
-            
+                  
         // find player
         int index_player = -1;
                             
@@ -420,7 +497,7 @@ static int __STDCALL callback__on_timer(void* ptr)
                 (monster_it->get_position_y() > (players[i].get_position_y() - monster_it->get_view_y())) &&
                 (monster_it->get_position_y() < (players[i].get_position_y() + monster_it->get_view_y())))
             {
-                //printf("found player (%d, %d): %d\n", monster_it->get_position_x(), monster_it->get_position_y(), i);
+                printf("found player (%d, %d): %d\n", monster_it->get_position_x(), monster_it->get_position_y(), i);
                 index_player = i;
                 break;
             }
@@ -444,14 +521,21 @@ static int __STDCALL callback__on_timer(void* ptr)
                 // monster attacks player
                 
                 int attack = monster_it->create_attack();                                
+                
+                std::string l_message = monster_it->get_name();
+                l_message += " attacks you with ";
+                l_message += std::to_string(attack);
+                                
                 printf("%s attacks %s with %d ", monster_it->get_name().c_str(), players[index_player].get_name().c_str(), attack);
                 int damage = monster_it->create_damage();
                 bool hit = players[index_player].is_attacked(attack, damage); 
 
-                if (players[index_player].is_dead()) { printf("and wins!\n"); }
-                else if (!hit) { printf("but misses!\n"); }
-                else  { printf("and causes %d damage!\n", damage); }                            
+                if (players[index_player].is_dead()) { printf("and wins!\n"); l_message += " and wins!"; }
+                else if (!hit) { printf("but misses!\n"); l_message += " but misses!"; }
+                else  { printf("and causes %d damage!\n", damage); l_message += " and causes "; l_message += std::to_string(damage); l_message += " damage!"; }     
                 
+                players[index_player].set_status_message(l_message);
+
             }
             else
             {
@@ -466,40 +550,8 @@ static int __STDCALL callback__on_timer(void* ptr)
             
         }
       
-      
-      
-      
-      
-      
   }
 
-    
-  // store players
-    
-  try
-  {
-    //static_cast<GVCPDevice*> (ptr)->on_timer();
-      
-    // store players (choose one randomly)
-    if (players.size() > 0)
-    {
-        int r = rand() % players.size();
-        printf("storing player %s\n", players[r].get_name().c_str());
-        players[r].store();
-    }
-    
-    return TRUE;
-  }
-  catch (std::runtime_error& e)
-  {
-    cape_log_fmt (CAPE_LL_ERROR, "WEBS", "on timer", e.what());
-    return FALSE;
-  }
-  catch (...)
-  {
-    cape_log_fmt (CAPE_LL_ERROR, "WEBS", "on timer", "unknown exception");
-    return FALSE;
-  }
 }
 
 //-----------------------------------------------------------------------------
@@ -575,12 +627,21 @@ int main (int argc, char *argv[])
   {
     goto exit_and_cleanup;
   }
+ 
+  // prepare world
+  for (int m=0; m<1000; m++)
+      for (int n=0; n<1000; n++)
+      {
+          int value = rand() % 3;
+          world[m][n] = 1;
+          if (value > 0) world[m][n] = 0;
+      }
+  
   
   // prepare monsters
   for (int i=0; i<3000; ++i) monsters.push_back(Monster("rat",      0, rand() % 1000, rand() % 1000, 12, 3, 0, -5, 0, 1, 1));
   for (int i=0; i<3000; ++i) monsters.push_back(Monster("dronte",   0, rand() % 1000, rand() % 1000, 12, 3, 0, -3, 0, 2, 2));
   for (int i=0; i<3000; ++i) monsters.push_back(Monster("bush",     0, rand() % 1000, rand() % 1000, 12, 3, 0, -1, 0, 3, 3));
- 
  
 
   /*
@@ -622,6 +683,7 @@ exit_and_cleanup:
 
 // todo:
 // timeout (frontend) after each action
+// spieler-timeout
 // sectors with monsters
 // server delivers sectors
 // dungeons

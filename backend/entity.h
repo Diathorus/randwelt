@@ -93,7 +93,7 @@ class Player : public Entity
 public:
     Player(std::string a_name, int a_zone, int a_pos_x, int a_pos_y);
     int calculate_current_level() { level = strength + dexterity + intelligence; return level; }
-    int calculate_next_level() { next_experience = (level+1) * 30; return next_experience; }
+    int calculate_next_level() { if (level == 0) { next_experience = 10; } else { next_experience = (level+9) * 3; } return next_experience; }
                
     void store(void);
     void load(void);
@@ -102,6 +102,7 @@ public:
     int get_experience() { return experience; }
     int get_next_experience() { return next_experience; }
     int get_give_attribute_points() { return give_attribute_points; }
+    std::string get_status_message() { return status_message; }
     
     void give_strength() { give_attribute(0); }
     void give_dexterity() { give_attribute(1); }
@@ -109,6 +110,7 @@ public:
     
     void give_attribute(int a_attribute);
     int boost_xp(int a_boost);
+    void set_status_message(std::string a_message) { status_message = a_message; }
 
 private:
     
@@ -116,6 +118,7 @@ private:
     
     // experience
     int level, experience, next_experience, give_attribute_points;
+    std::string status_message; 
     
 };
 
