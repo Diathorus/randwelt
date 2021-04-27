@@ -8,6 +8,7 @@
     <b>{{ text_label_zone }} </b>
     <br><br>
 
+<!--
     <pre class="ascii" *ngFor="let line of final_matrix"><b *ngFor="let element of line"><b
       *ngIf="element == 'ß'" style="color:darkgreen">{{element}}</b><b
       *ngIf="element == ','" style="color:Chartreuse">{{element}}</b><b
@@ -18,12 +19,61 @@
       *ngIf="element == '*'" style="color:DarkGoldenRod">{{element}}</b><b
       *ngIf="element == '1'" style="color:blue">@</b><b
       *ngIf="element == '2'" style="color:red">@</b></b></pre>
+-->
+
+    <pre class="ascii" *ngFor="let line of final_world"><b *ngFor="let element of line"><b
+      *ngIf="element.v == 3" style="color:Sienna">:</b><b
+      *ngIf="element.v == 2" style="color:SaddleBrown">#</b><b
+      *ngIf="element.v == 1" style="color:darkgreen">ß</b><b
+      *ngIf="element.v == 0" style="color:LimeGreen">,</b><b
+      *ngIf="element.v == -1" style="color:blue">@</b><b
+      *ngIf="element.v == -2" style="color:red">@</b><b
+      *ngIf="element.v == -3" style="color:DimGray">;</b><b
+      *ngIf="element.v == -4" style="color:DarkGoldenRod">*</b><b
+      *ngIf="element.v == -5" style="color:darkgreen">a</b></b></pre>
+
+
+
+      <!--
+      *ngIf="element.v == 0" style="color:Chartreuse">,</b><b
+      *ngIf="element.v == 1" style="color:darkgreen">ß</b></b></pre>
+-->
+
+
+
+<!--
+    <pre class="ascii" *ngFor="let line of final_matrix"><b *ngFor="let element of line"><b
+      *ngIf="element == 'ß'" style="color:darkgreen"><img src="light_tree.bmp" alt="ß" style="width:16px;height:16px;"></b><b
+      *ngIf="element == ','" style="color:Chartreuse"><img src="grass.bmp" alt="," style="width:16px;height:16px;"></b><b
+      *ngIf="element == '#'" style="color:SaddleBrown"><img src="grass.bmp" alt="#" style="width:16px;height:16px;"></b><b
+      *ngIf="element == ':'" style="color:Sienna"><img src="grass.bmp" alt=":" style="width:16px;height:16px;"></b><b
+      *ngIf="element == ';'" style="color:DimGray"><img src="grass.bmp" alt=";" style="width:16px;height:16px;"></b><b
+      *ngIf="element == 'a'" style="color:darkgreen"><img src="grass.bmp" alt="a" style="width:16px;height:16px;"></b><b
+      *ngIf="element == '*'" style="color:DarkGoldenRod"><img src="grass.bmp" alt="*" style="width:16px;height:16px;"></b><b
+      *ngIf="element == '1'" style="color:blue">@</b><b
+      *ngIf="element == '2'" style="color:red">@</b></b></pre>
+-->
+
+      <!--
+<div class="row">
+  <div class="column">
+    <img src="img_snow.jpg" alt="Snow" style="width:100%">
+  </div>
+  <div class="column">
+    <img src="img_forest.jpg" alt="Forest" style="width:100%">
+  </div>
+  <div class="column">
+    <img src="img_mountains.jpg" alt="Mountains" style="width:100%">
+  </div>
+</div> -->
+
+
   </div>
 
   <div id = "character" class="fright">
     <div>
 
-      <b> {{ authentication }} </b> (position: {{ own_player_x }}, {{ own_player_y }})
+      <b> {{ authentication }} </b> (position: {{ own_player_x }}, {{ own_player_y }}) <i *ngIf="blocked_timeout"> blocked </i>
 
       <!-- meal: {{ hunger }} -->
 
@@ -87,7 +137,6 @@
     }-->
 
 
-
     <!--</p>
     <p><u>more actions:</u> walk back/forth, attack, use</p>
     <br>-->
@@ -103,7 +152,7 @@
 
 
       <div id = "status_messages">
-        <i>{{ text_status_message }}</i>
+        <i>{{ own_status_message }}</i>
       </div>
 
       <br><br>
@@ -125,5 +174,6 @@
       <button (click)="onFood()">Food</button>
 
       <br><br>
+
   </div>
 

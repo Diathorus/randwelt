@@ -11,13 +11,14 @@ export class IngameComponent implements OnInit
 {
 
   interval; // timer
+  blocked_timeout : boolean = false; // timeout
 
   // human indication mapping for @
-  display_human_own_player : string = "1";
-  display_human_other_player : string = "2";
-  display_monster_rat : string = ";";
-  display_monster_bush : string = "a";
-  display_monster_dronte : string = "*";
+  display_human_own_player    : number = -1;
+  display_human_other_player  : number = -2;
+  display_monster_rat         : number = -3;
+  display_monster_dronte      : number = -4;
+  display_monster_bush        : number = -5;
 
   html_answer_1: string;
   html_answer_2: string;
@@ -37,8 +38,9 @@ export class IngameComponent implements OnInit
   VOLUME_SECTOR_MAX_X = 1000;
   VOLUME_SECTOR_MAX_Y = 1000;
 
-  clean_matrix:string[][]; // matrix without entities
-  final_matrix:string[][];
+  // world from server
+  clean_world: Voxel[][];
+  final_world: Voxel[][];
 
   // own player values
   own_hp_current : number = 7;
@@ -52,27 +54,84 @@ export class IngameComponent implements OnInit
   own_experience : number = 7;
   own_next_experience : number = 7;
   own_give_points : number = 7;
+  own_status_message : string = "Servus";
 
   constructor(private http: HttpClient)
   {
-    this.createWorld(0);
-    this.applyPlayersToMatrix();
+
+    this.final_world = [];
+    for(var m: number = 0; m < this.VOLUME_M; m++)
+    {
+
+      this.final_world[m] = [];
+      for(var n: number = 0; n< this.VOLUME_N; n++)
+      {
+
+        this.final_world[m][n] = new Voxel();
+        this.final_world[m][n].x = 0;
+        this.final_world[m][n].y = 0;
+        this.final_world[m][n].v = 0;
+      }
+    }
 
     // set up timer
     this.interval = setInterval(() => {
       this.requestPlayersFromServer();
-    }, 3000)
+    }, 2000)
 
   }
 
-  requestHTTP(a_command : string)
+  requestWorld(a_command : string)
   {
+
+    this.blocked_timeout = true;
 
     class Data { name: string };
     var data: Data[]
 
     // send data to the server
-    this.http.post("json/x", JSON.stringify ({player_name:this.authentication, command:a_command, player_x:this.own_player_x, player_y:this.own_player_y})).subscribe ((data) =>
+    this.http.post("json/x", JSON.stringify ({player_name:this.authentication, command:a_command})).subscribe ((data) =>
+    {
+
+      var m: any;
+      var n: any;
+
+      this.clean_world = [];
+
+      for(m in data)
+      {
+
+        this.clean_world[m] = [];
+
+        for (n in data[m])
+        {
+
+          this.clean_world[m][n] = new Voxel();
+          this.clean_world[m][n].x = data[m][n].x;
+          this.clean_world[m][n].y = data[m][n].y;
+          this.clean_world[m][n].v = data[m][n].v;
+
+        }
+      }
+
+      // last index: alert("m: " + m + ", n: " + n);
+
+      this.applyPlayersToMatrix();
+
+
+    });
+  }
+
+  requestHTTP(a_command : string)
+  {
+
+    this.blocked_timeout = true;
+
+    class Data { name: string };
+    var data: Data[]
+
+    // send data to the server
+    this.http.post("json/x", JSON.stringify ({player_name:this.authentication, command:a_command})).subscribe ((data) =>
     {
       this.zone_name = data[0].name           // next callback
     });
@@ -93,6 +152,7 @@ export class IngameComponent implements OnInit
       this.own_experience   = data[0].experience;
       this.own_next_experience = data[0].next_experience;
       this.own_give_points = data[0].give_points;
+      this.own_status_message = data[0].message;
 
     },
     (error) => {                                   //Error callback
@@ -111,6 +171,7 @@ export class IngameComponent implements OnInit
 
     var parsing_players: Entity[];
 
+    this.blocked_timeout = false; // new commands are possible, this function is used as timer function
 
     this.http.get("players/x?name="+ this.authentication).subscribe ((parsing_players) => // data works
     {
@@ -154,12 +215,14 @@ export class IngameComponent implements OnInit
   }
 
 
+  // ================================================================00
+
   // this part needs to be moved to the server!
 
   // descriptive texts
 
   text_zone_description : string = "default zone description";
-  text_status_message : string = "status message";
+  text_status_message : string = "status message"; // replaced by own_status_message
   text_label_zone : string = "default";
 
   // command string
@@ -966,109 +1029,29 @@ export class IngameComponent implements OnInit
   <button id="b">save game</button>
   */
 
+  // ============================================================================================================================0
 
   // functions for the frontend (do not move to the server!)
 
-  onMoveWest()  { if (this.own_player_x > 0)                            { this.own_player_x--; this.moveMatrixRight();  this.applyPlayersToMatrix(); this.requestHTTP("move_west"); } }
-  onMoveEast()  { if (this.own_player_x < this.VOLUME_SECTOR_MAX_X-1)   { this.own_player_x++; this.moveMatrixLeft();   this.applyPlayersToMatrix(); this.requestHTTP("move_east"); } }
-  onMoveSouth() { if (this.own_player_y > 0)                            { this.own_player_y--; this.moveMatrixUp();     this.applyPlayersToMatrix(); this.requestHTTP("move_south"); } }
-  onMoveNorth() { if (this.own_player_y < this.VOLUME_SECTOR_MAX_Y-1)   { this.own_player_y++; this.moveMatrixDown();   this.applyPlayersToMatrix(); this.requestHTTP("move_north"); } }
-
-  createWorld(zone : number)
-  {
-    this.clean_matrix = [];
-    this.final_matrix = [];
-    for(var m: number = 0; m < this.VOLUME_M; m++)
-    {
-      this.clean_matrix[m] = [];
-      this.final_matrix[m] = [];
-        for(var n: number = 0; n< this.VOLUME_N; n++)
-        {
-
-            this.final_matrix[m][n] = "#"; // intial value
-            if (zone == 0) // light forest
-            {
-              this.clean_matrix[m][n] = this.createRandomWorldElement(0);
-            }
-
-            /*else if (zone == 0)
-            {
-              var l_value : number = Math.floor(Math.random() * 3);
-              this.clean_matrix[m][n] = ":";
-              if ((m == 0) || (n == 0)) { this.clean_matrix[m][n] = "#"; }
-            }*/
-        }
-    }
-  }
-
-  createRandomWorldElement(zone : number)
-  {
-    var result : string = " ";
-
-    if (zone == 0)
-    {
-      var l_value : number = Math.floor(Math.random() * 3);
-      result = "ß";
-      if (l_value > 0) { result = ","; }
-    }
-
-    return result;
-  }
-
-  moveMatrixRight()
-  {
-    for(var m: number = 0; m < this.VOLUME_M; m++) {
-      for(var n: number = this.VOLUME_N-1; n > 0; n--) {
-        this.clean_matrix[m][n] = this.clean_matrix[m][n-1];
-      }
-      this.clean_matrix[m][0] = this.createRandomWorldElement(0);
-    }
-  }
-
-  moveMatrixLeft()
-  {
-    for(var m: number = 0; m < this.VOLUME_M; m++) {
-      for(var n: number = 0; n < this.VOLUME_N-1; n++) {
-        this.clean_matrix[m][n] = this.clean_matrix[m][n+1];
-      }
-      this.clean_matrix[m][this.VOLUME_N-1] = this.createRandomWorldElement(0);
-    }
-  }
-
-  moveMatrixUp()
-  {
-    for(var m: number = 0; m < this.VOLUME_M-1; m++) {
-      for(var n: number = 0; n < this.VOLUME_N; n++) {
-        this.clean_matrix[m][n] = this.clean_matrix[m+1][n];
-      }
-    }
-
-    for(var n: number = 0; n < this.VOLUME_N; n++) { this.clean_matrix[this.VOLUME_M-1][n] = this.createRandomWorldElement(0); }
-  }
-
-  moveMatrixDown()
-  {
-    for(var m: number = this.VOLUME_M-1; m > 0; m--) {
-      for(var n: number = 0; n < this.VOLUME_N; n++) {
-        this.clean_matrix[m][n] = this.clean_matrix[m-1][n];
-      }
-    }
-
-    for(var n: number = 0; n < this.VOLUME_N; n++) { this.clean_matrix[0][n] = this.createRandomWorldElement(0); }
-  }
+  onMoveWest()  { if (false == this.blocked_timeout) if (this.own_player_x > 0)                            { this.own_player_x--; this.requestWorld("move_west"); } }
+  onMoveEast()  { if (false == this.blocked_timeout) if (this.own_player_x < this.VOLUME_SECTOR_MAX_X-1)   { this.own_player_x++; this.requestWorld("move_east"); } }
+  onMoveSouth() { if (false == this.blocked_timeout) if (this.own_player_y > 0)                            { this.own_player_y--; this.requestWorld("move_south"); } }
+  onMoveNorth() { if (false == this.blocked_timeout) if (this.own_player_y < this.VOLUME_SECTOR_MAX_Y-1)   { this.own_player_y++; this.requestWorld("move_north"); } }
 
 
   applyPlayersToMatrix()
   {
 
+
     // first, copy clean matrix into result matrix
-    for(var m: number = 0; m < this.VOLUME_M; m++)
+    for(var m: number = 0; m < this.VOLUME_M-1; m++)
     {
-      for(var n: number = 0; n< this.VOLUME_N; n++)
+      for(var n: number = 0; n< this.VOLUME_N-1; n++)
       {
-        this.final_matrix[m][n] = this.clean_matrix[m][n];
+        this.final_world[m][n].v = this.clean_world[m][n].v;
       }
     }
+
 
     // second, apply players to result matrix
 
@@ -1082,30 +1065,38 @@ export class IngameComponent implements OnInit
 
       if ((index_n >= 0) && (index_n < this.VOLUME_N) && (index_m >= 0) && (index_m < this.VOLUME_M))
       {
-        if (this.players[j].name == "rat") { this.final_matrix[index_m][index_n] = this.display_monster_rat; }
-        else if (this.players[j].name == "bush") { this.final_matrix[index_m][index_n] = this.display_monster_bush; }
-        else if (this.players[j].name == "dronte") { this.final_matrix[index_m][index_n] = this.display_monster_dronte; }
 
-        else if (this.players[j].name != this.authentication) // display not myself (we come later)
+        if (this.final_world[index_m][index_n].v != this.display_human_other_player) // do not overwrite other players by monsters!
         {
-          this.final_matrix[index_m][index_n] = this.display_human_other_player;
+
+          if (this.players[j].name == "rat") { this.final_world[index_m][index_n].v = this.display_monster_rat; }
+          else if (this.players[j].name == "bush") { this.final_world[index_m][index_n].v = this.display_monster_bush; }
+          else if (this.players[j].name == "dronte") { this.final_world[index_m][index_n].v = this.display_monster_dronte; }
+
+          else if (this.players[j].name != this.authentication) // display not myself (we come later)
+          {
+            this.final_world[index_m][index_n].v = this.display_human_other_player;
+          }
         }
       }
     }
 
     // standard: apply player in the center of the matrix
     // in dungeons this may be dependent from the players position
-    this.final_matrix[this.CENTER_M][this.CENTER_N] = this.display_human_own_player;
+    this.final_world[this.CENTER_M][this.CENTER_N].v = this.display_human_own_player;
+
   }
+
+  // commands
 
   onAttack()
   {
-    this.requestHTTP("attack");
+    if (false == this.blocked_timeout) this.requestHTTP("attack");
   }
 
   onFood()
   {
-    this.requestHTTP("food");
+    if (false == this.blocked_timeout) this.requestHTTP("food");
   }
 
   onGiveStrength()
@@ -1135,8 +1126,16 @@ export class Entity
   background: string;
 };
 
+export class Voxel
+{
+  x: number;
+  y: number;
+  v: number;
+}
+
+/*
 export class MatrixElement
 {
   display: string;
   color: string;
-}
+}*/
