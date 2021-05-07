@@ -2,10 +2,9 @@
 
 // Entity methods
 
-Entity::Entity(std::string a_name, int a_zone, int a_pos_x, int a_pos_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp)
+Entity::Entity(std::string a_name, int a_pos_x, int a_pos_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp)
 {
     name = a_name;
-    zone = a_zone;
     position_x = a_pos_x;
     position_y = a_pos_y;
         
@@ -26,7 +25,18 @@ bool Entity::is_attacked(int a_attack, int a_damage)
     bool hit = false;
     if (a_attack >= 10 + calculate_armor()) { hit = true; }
     if (hit) { hp_current -= a_damage; }
-    if (hp_current < 0) { hp_current = 0; }
+    
+    // death
+    if (hp_current < 0) 
+    { 
+        strength = 0;
+        dexterity = 0;
+        intelligence = 0;
+        hp_current = 0; 
+        hp_max = 4;
+        give_xp = 0;
+        
+    }
     return hit;
 }
     
@@ -40,8 +50,12 @@ void Entity::heal(int a_boost_hp)
 // Player methods
 
 
-Player::Player(std::string a_name, int a_zone, int a_pos_x, int a_pos_y) : Entity(a_name, a_zone, a_pos_x, a_pos_y, 0, 0, 0, 4, 10) 
+Player::Player(std::string a_name, int a_sector_x, int a_sector_y, int a_zone, int a_pos_x, int a_pos_y) : Entity(a_name, a_pos_x, a_pos_y, 0, 0, 0, 4, 10) 
 {
+    sector_x = a_sector_x;
+    sector_y = a_sector_y;
+    zone = a_zone;
+
     level = 0;
     experience = 0;
     next_experience = 0;
@@ -54,6 +68,8 @@ void Player::store(void)
     cape::Udc udc_player(CAPE_UDC_NODE);
     udc_player.add("name", name);
     udc_player.add("zone", zone);
+    udc_player.add("sector_x", sector_x);
+    udc_player.add("sector_y", sector_y);
     udc_player.add("position_x", position_x);
     udc_player.add("position_y", position_y);
     udc_player.add("hp_current", hp_current);
@@ -85,7 +101,9 @@ void Player::load(void)
         printf("loading player from %s ... ", filename.c_str()); 
                        
         cape::Udc content = cape_json_from_file (filename.c_str(), err);
-          
+
+        if (content.get("sector_x").valid())    { sector_x      = content.get("sector_x"); }
+        if (content.get("sector_y").valid())    { sector_y      = content.get("sector_y"); }
         if (content.get("position_x").valid())  { position_x    = content.get("position_x"); }
         if (content.get("position_y").valid())  { position_y    = content.get("position_y"); }
         if (content.get("zone").valid())        { zone          = content.get("zone"); }

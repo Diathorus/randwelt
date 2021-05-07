@@ -17,10 +17,9 @@ class Entity
     
 public:     // public members
     
-    Entity(std::string a_name, int a_zone, int a_pos_x, int a_pos_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp);
+    Entity(std::string a_name, int a_pos_x, int a_pos_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp);
     
     std::string get_name() { return name; }
-    int get_zone() { return zone; }
     int get_position_x() { return position_x; }
     int get_position_y() { return position_y; }
 
@@ -52,10 +51,10 @@ public:     // public members
 
     
 protected:    // private attributes
-    std::string name;
-    int zone;
+    std::string name;    
     int position_x;
     int position_y;
+    
     int health;
     
     // attributes
@@ -77,7 +76,7 @@ private:
     
 public:
     Monster(std::string a_name, int a_zone, int a_pos_x, int a_pos_y, int a_view_x, int a_view_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp) : 
-        Entity(a_name, a_zone, a_pos_x, a_pos_y, a_strength, a_dexterity, a_intelligence, a_health, a_give_xp) 
+        Entity(a_name, a_pos_x, a_pos_y, a_strength, a_dexterity, a_intelligence, a_health, a_give_xp) 
         {
             m_view_x = a_view_x; if (m_view_x < 0) { m_view_x = 0; }
             m_view_y = a_view_y; if (m_view_y < 0) { m_view_y = 0; }
@@ -91,13 +90,14 @@ class Player : public Entity
 {
     
 public:
-    Player(std::string a_name, int a_zone, int a_pos_x, int a_pos_y);
+    Player(std::string a_name, int a_sector_x, int a_sector_y, int a_zone, int a_pos_x, int a_pos_y);
     int calculate_current_level() { level = strength + dexterity + intelligence; return level; }
     int calculate_next_level() { if (level == 0) { next_experience = 10; } else { next_experience = (level+9) * 3; } return next_experience; }
                
     void store(void);
     void load(void);
     
+    int get_zone() { return zone; }
     int get_level() { return level; }
     int get_experience() { return experience; }
     int get_next_experience() { return next_experience; }
@@ -113,7 +113,11 @@ public:
     void set_status_message(std::string a_message) { status_message = a_message; }
 
 private:
-    
+            
+    int sector_x;
+    int sector_y;
+    int zone;
+
     // === attributes ===
     
     // experience
