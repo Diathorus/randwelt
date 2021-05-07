@@ -17,7 +17,7 @@ export class IngameComponent implements OnInit
   display_human_own_player    : number = -1;
   display_human_other_player  : number = -2;
   display_monster_rat         : number = -3;
-  display_monster_dronte      : number = -4;
+  display_monster_pheasant    : number = -4;
   display_monster_bush        : number = -5;
 
   html_answer_1: string;
@@ -28,6 +28,7 @@ export class IngameComponent implements OnInit
   players: Entity[];
   player_number : number;
 
+  own_zone : number = 0;
   own_player_x : number = 3;
   own_player_y : number = 3;
   field_on_player : string;
@@ -195,6 +196,13 @@ export class IngameComponent implements OnInit
         {
           this.own_player_x = this.players[j].position_x; // for further movement
           this.own_player_y = this.players[j].position_y; // for further movement
+
+          // convert own health percentage to points: health update without need of interaction
+          this.own_hp_current = Math.round(this.own_hp_max * (this.players[j].health * 0.01));
+
+          // zone
+          this.own_zone = parsing_players[j].zone;
+          this.createZoneDescription(this.own_zone);
         }
 
         this.applyPlayersToMatrix();
@@ -958,15 +966,18 @@ export class IngameComponent implements OnInit
         this.text_status_message += "I do not know this command! ";
       }
     }
+  }
+    // display inventory
+    //var table = document.getElementById("inventory_table");
 
-    if ("monastery_barracks" == this.zone_name)
-    {
-      this.text_label_zone = "monastery barracks";
-      this.text_zone_description = "...";
-    }
 
+  // ============================================================================================================================
+
+
+  createZoneDescription(a_zone : number)
+  {
     // display zone
-    else if (1 == this.zone)
+    if (0 == a_zone)
     {
       this.text_label_zone = "woodcutters village";
       this.text_zone_description = "I see some small logs which look like a nice place to spend\
@@ -975,7 +986,16 @@ export class IngameComponent implements OnInit
             Furthermore, I may try to sell some stuff.";
     }
 
-    else if (0 == this.zone)
+    else if (1 == a_zone)
+    {
+      this.text_label_zone = "grassland";
+      this.text_zone_description = "The sea of grass goes far beyond the horizon\
+            and is only interrupted by some bushes and small trees like islands\
+            in this nice place.";
+    }
+
+
+    else if (2 == a_zone)
     {
       this.text_label_zone = "light forest";
       this.text_zone_description = "The sun dances above the light trees, and birds flatter around\
@@ -983,7 +1003,7 @@ export class IngameComponent implements OnInit
             are small and slight, though the wind swishes through their leaves.";
     }
 
-    else if (2 == this.zone)
+    else if (3 == a_zone)
     {
       this.text_label_zone = "dark forest";
       this.text_zone_description = "The trees are dark and dense. I feel the stiff cold air and \
@@ -992,7 +1012,7 @@ export class IngameComponent implements OnInit
             from that the only sound is the moaning of wood.";
     }
 
-    else if (3 == this.zone)
+    else if (4 == a_zone)
     {
       this.text_label_zone = "cursed forest";
       this.text_zone_description = "The forest is old and dark and i feel remarkably cold. An owl\
@@ -1001,37 +1021,7 @@ export class IngameComponent implements OnInit
             and it feels very dangerous to be here.";
     }
 
-    // display inventory
-    var table = document.getElementById("inventory_table");
-
-
-    // display string for savegame
-
-
-/*
-    text = "SAVE," + authentication; text += ",L," + level + ",S," + strength + ",D," + dexterity + ",I," + intelligence;
-    text += ",G," + give_me_points + ",H," + max_health + ",h," + current_health + ",c," + coins + ",Z," + zone;
-    text += ",t,"; if (false == thirst) { text += "0"; } else { text += "1" };
-    text += ",h," + hunger;
-    text += ",S," + skill_flower_plucking + "," + skill_wood_lumbering + "," + skill_ore_mining + "," + skill_carcass_gutting;
-    text += "," + skill_potion_brewing + "," + skill_wood_carpentering + "," + skill_stone_masoning + "," + skill_leather_working;
-    text += ",INV,"; for (i=0; i<9; i++) { text += inventory_number[i] + "," + inventory_type[i] + ","; }*/
-
-    //document.getElementById("save_status").innerHTML = text;
-
-
   }
-
-  /*
-  var button = document.getElementById('b');
-  button.addEventListener('click', saveGame);
-
-  <button id="b">save game</button>
-  */
-
-  // ============================================================================================================================0
-
-  // functions for the frontend (do not move to the server!)
 
   onMoveWest()  { if (false == this.blocked_timeout) if (this.own_player_x > 0)                            { this.own_player_x--; this.requestWorld("move_west"); } }
   onMoveEast()  { if (false == this.blocked_timeout) if (this.own_player_x < this.VOLUME_SECTOR_MAX_X-1)   { this.own_player_x++; this.requestWorld("move_east"); } }
@@ -1044,9 +1034,9 @@ export class IngameComponent implements OnInit
 
 
     // first, copy clean matrix into result matrix
-    for(var m: number = 0; m < this.VOLUME_M-1; m++)
+    for(var m: number = 0; m < this.VOLUME_M; m++)
     {
-      for(var n: number = 0; n< this.VOLUME_N-1; n++)
+      for(var n: number = 0; n < this.VOLUME_N; n++)
       {
         this.final_world[m][n].v = this.clean_world[m][n].v;
       }
@@ -1071,7 +1061,7 @@ export class IngameComponent implements OnInit
 
           if (this.players[j].name == "rat") { this.final_world[index_m][index_n].v = this.display_monster_rat; }
           else if (this.players[j].name == "bush") { this.final_world[index_m][index_n].v = this.display_monster_bush; }
-          else if (this.players[j].name == "dronte") { this.final_world[index_m][index_n].v = this.display_monster_dronte; }
+          else if (this.players[j].name == "pheasant") { this.final_world[index_m][index_n].v = this.display_monster_pheasant; }
 
           else if (this.players[j].name != this.authentication) // display not myself (we come later)
           {

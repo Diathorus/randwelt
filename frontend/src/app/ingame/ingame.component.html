@@ -19,11 +19,23 @@
       *ngIf="element == '*'" style="color:DarkGoldenRod">{{element}}</b><b
       *ngIf="element == '1'" style="color:blue">@</b><b
       *ngIf="element == '2'" style="color:red">@</b></b></pre>
--->
 
-    <pre class="ascii" *ngFor="let line of final_world"><b *ngFor="let element of line"><b
+
+
+      more elements (see below):
+
+
       *ngIf="element.v == 3" style="color:Sienna">:</b><b
       *ngIf="element.v == 2" style="color:SaddleBrown">#</b><b
+
+      -->
+
+
+
+
+    <pre class="ascii" *ngFor="let line of final_world"><b *ngFor="let element of line"><b
+      *ngIf="element.v == 3" style="color:Yellow">.</b><b
+      *ngIf="element.v == 2" style="color:darkgreen">a</b><b
       *ngIf="element.v == 1" style="color:darkgreen">ß</b><b
       *ngIf="element.v == 0" style="color:LimeGreen">,</b><b
       *ngIf="element.v == -1" style="color:blue">@</b><b
@@ -90,7 +102,7 @@
 
     </div><br>
 
-    <u>inventory</u>
+  <!--  <u>inventory</u>
     <table border="0" cellpadding="0" id="inventory_table">
       <tr><td><b>1){{Item_Type.properties[inventory_type[0]].label.toString()}}</b></td><td></td><td></td>
           <td><b>4){{Item_Type.properties[inventory_type[3]].label.toString()}}</b></td><td></td><td></td>
@@ -104,7 +116,7 @@
           <td><b>6){{Item_Type.properties[inventory_type[5]].label.toString()}}</b></td><td></td><td></td>
           <td><b>9){{Item_Type.properties[inventory_type[8]].label.toString()}}</b></td><td></td></tr>
 
-    </table>
+    </table>-->
   </div>
 
 
@@ -142,9 +154,6 @@
     <br>-->
 
       <div id = "zone_description">
-      <!--server data: {{ html_answer_1 }}
-      server data: {{ html_answer_2 }}<br>
-      zone name: {{ zone_name }}<br>-->
 
         {{ text_zone_description }}
 
