@@ -19,10 +19,17 @@ export class IngameComponent implements OnInit
   display_monster_rat         : number = -3;
   display_monster_pheasant    : number = -4;
   display_monster_bush        : number = -5;
+  display_human_commoner      : number = -6;
+  display_monster_bat         : number = -7;
+  display_monster_deer        : number = -8;
+  display_monster_sheep       : number = -9;
+  display_monster_shrub       : number = -10;
+  display_monster_crow        : number = -11;
+
 
   html_answer_1: string;
   html_answer_2: string;
-  zone_name: string;
+  zone_name: string;h
   second: string;
 
   players: Entity[];
@@ -177,40 +184,45 @@ export class IngameComponent implements OnInit
     this.http.get("players/x?name="+ this.authentication).subscribe ((parsing_players) => // data works
     {
 
-      var j: any;
+      var i,j: any;
 
       // we have to delete the players list, in case that real players list shrinks
       this.players = [];
+      i = -1;
 
       //var output : string = "online: "; this.player_number = 0;
       for(j in parsing_players)
       {
-        this.players[j] = new Entity();
-        this.players[j].name = parsing_players[j].name;
-        this.players[j].zone = parsing_players[j].zone;
-        this.players[j].position_x = parsing_players[j].position_x;
-        this.players[j].position_y = parsing_players[j].position_y;
-        this.players[j].health = parsing_players[j].health;
 
-        if (this.authentication == this.players[j].name)
+        // do not include own player in players list
+        if (this.authentication == parsing_players[j].name)
         {
-          this.own_player_x = this.players[j].position_x; // for further movement
-          this.own_player_y = this.players[j].position_y; // for further movement
+          this.own_player_x = parsing_players[j].position_x; // for further movement
+          this.own_player_y = parsing_players[j].position_y; // for further movement
 
           // convert own health percentage to points: health update without need of interaction
-          this.own_hp_current = Math.round(this.own_hp_max * (this.players[j].health * 0.01));
+          this.own_hp_current = Math.round(this.own_hp_max * (parsing_players[j].health * 0.01));
 
           // zone
           this.own_zone = parsing_players[j].zone;
           this.createZoneDescription(this.own_zone);
         }
-
-        this.applyPlayersToMatrix();
+        else
+        {
+          i += 1;
+          this.players[i] = new Entity();
+          this.players[i].name = parsing_players[j].name;
+          this.players[i].zone = parsing_players[j].zone;
+          this.players[i].position_x = parsing_players[j].position_x;
+          this.players[i].position_y = parsing_players[j].position_y;
+          this.players[i].health = parsing_players[j].health;
+        }
 
         //output += parsing_players[j].name + ", "; this.player_number++;
 
       }
-      //alert (output);
+
+      this.applyPlayersToMatrix();
 
     },
     (error) => {                                   //Error callback
@@ -1062,8 +1074,15 @@ export class IngameComponent implements OnInit
           if (this.players[j].name == "rat") { this.final_world[index_m][index_n].v = this.display_monster_rat; }
           else if (this.players[j].name == "bush") { this.final_world[index_m][index_n].v = this.display_monster_bush; }
           else if (this.players[j].name == "pheasant") { this.final_world[index_m][index_n].v = this.display_monster_pheasant; }
+          else if (this.players[j].name == "commoner") { this.final_world[index_m][index_n].v = this.display_human_commoner; }
+          else if (this.players[j].name == "bat") { this.final_world[index_m][index_n].v = this.display_monster_bat; }
+          else if (this.players[j].name == "deer") { this.final_world[index_m][index_n].v = this.display_monster_deer; }
+          else if (this.players[j].name == "sheep") { this.final_world[index_m][index_n].v = this.display_monster_sheep; }
+          else if (this.players[j].name == "shrub") { this.final_world[index_m][index_n].v = this.display_monster_shrub; }
+          else if (this.players[j].name == "crow") { this.final_world[index_m][index_n].v = this.display_monster_crow; }
+          else if (this.players[j].name == "bat") { this.final_world[index_m][index_n].v = this.display_monster_bat; }
 
-          else if (this.players[j].name != this.authentication) // display not myself (we come later)
+          else
           {
             this.final_world[index_m][index_n].v = this.display_human_other_player;
           }
