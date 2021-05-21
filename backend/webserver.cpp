@@ -18,6 +18,9 @@
 
 // constant that should be known also in entity module
 
+#define PLAYER_CREATION_SECTOR_X 50
+#define PLAYER_CREATION_SECTOR_Y 50
+
 #define SECTOR_SIZE_X 1000
 #define SECTOR_SIZE_Y 1000
 
@@ -27,20 +30,18 @@
 #include "entity.h"
 
 
-// this shall become the WorldManager
-int get_zone(int a_sector_x, int a_sector_y)
-{
-    return 0;
-}
-
-int get_sector_food(void) { return 10; }
-
-
 
 
 std::vector<Player> players;
 
 static long g_webserver_timer_counter = 0;
+
+/* TODO
+ * - light forest monster stats
+ * - grassland description
+ * - remove zone from player constructor -> sector coordinates should be enough
+ * 
+ */
 
 
 /* World Manager */
@@ -82,21 +83,54 @@ public:
         {
             for (int n=0; n<SECTOR_SIZE_X; n++)
             {
-                int value = rand() % 30;
                 
-                     if (value < 26) { world[m][n] = 0; }
-                else if (value < 28) { world[m][n] = 1; }
-                else if (value < 29) { world[m][n] = 2; }
-                else { world[m][n] = 3; }
+                if (zone == 1)  // 1 = grassland
+                {
+                    int value = rand() % 30;
+                    
+                        if (value < 26) { world[m][n] = 0; }
+                    else if (value < 28) { world[m][n] = 1; }
+                    else if (value < 29) { world[m][n] = 2; }
+                    else { world[m][n] = 3; }
+                }
+                else if (zone == 2)  // 2 = light forest
+                {
+                    int value = rand() % 30;
+                    
+                        if (value < 16) { world[m][n] = 0; }
+                    else if (value < 28) { world[m][n] = 1; }
+                    else if (value < 29) { world[m][n] = 2; }
+                    else { world[m][n] = 3; }
+                }
 
             }
         }
     
-        // prepare monsters
-        for (int i=0; i<2000; ++i) monsters.push_back(Monster("rat",      0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -5, 0, 1, 1));
-        for (int i=0; i<1000; ++i) monsters.push_back(Monster("pheasant", 0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -3, 0, 2, 2));
-        for (int i=0; i<500; ++i)  monsters.push_back(Monster("bush",     0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -1, 0, 3, 3));
+        // create monsters
+        if (zone == 1) // 1 = grassland
+        {
+            for (int i=0; i<2000; ++i) monsters.push_back(Monster("rat",      0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -5, 0, 1, 1));
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("pheasant", 0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -3, 0, 2, 2));
+            for (int i=0; i<500; ++i)  monsters.push_back(Monster("bush",     0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -1, 0, 3, 3));
+        }       
+        
+        else if (zone == 2) // 2 = light forest
+        {
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("commoner",   0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -5, 0, 1, 1));
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("bat",        0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -5, 0, 1, 1));
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("deer",       0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -3, 0, 2, 2));
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("sheep",      0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -3, 0, 2, 2));
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("shrub",      0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -1, 0, 3, 3));
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("crow",       0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -1, 0, 3, 3));
+            
+        }
     }    
+    
+    
+    int getFood()
+    {
+        if (zone == 1) { return 10; } else { return 15; }
+    }
     
 public: // todo: manage monsters and make it private
     std::vector<Monster> monsters;
@@ -107,7 +141,7 @@ private:
     
 };
 
-Sector grassland(10, 10, 1);
+Sector grassland(50, 50, 1);
 
 
 //-----------------------------------------------------------------------------
@@ -243,8 +277,10 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                     
                     // there is a new player!
                     if (it == players.end())
-                    {                           
-                        players.push_back(Player(player_name, 10, 10, 1, 500, 500));
+                    {           
+                        printf("Welcome, new player %s!\n", player_name.c_str());
+                        players.push_back(Player(player_name, PLAYER_CREATION_SECTOR_X, PLAYER_CREATION_SECTOR_Y, 1, 500, 500));
+                        printf("Try to load new player!\n");
                         players[players.size()-1].load(); // try to load (if savegame exists)
                         
                     } else // old player, solve commands:
@@ -355,7 +391,7 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                         {
                             
                             int roll = rand() % 20 + 1;
-                            if (roll >= get_sector_food() - it->get_level())
+                            if (roll >= grassland.getFood() - it->get_level())
                             {
                                 if (roll == 20) { it->heal(rand()%6+1); } else { it->heal(1); }
                                 it->set_status_message("You found some food!");
@@ -721,3 +757,11 @@ exit_and_cleanup:
 }
 
 //-----------------------------------------------------------------------------
+/*
+Online Sectors:
+================
+
+2. light forest (real crow, real stats): bat (^), deer (n), PF-sheep (s), mighty shrub (q), dungeon: bat hollow (druid); theme: raven (v)
+3. dark forest (real inn+highland): real stats: needle blight (ß), elk (n), 1d6 goats (4), wolf (w), giant rat (;) / 1d4 rats, boar (3), 1d3 giant fire beetles (<); theme: cult+goblins? (g/0/O)
+4. cursed forest (real dark forest): black bear (B), 1d3 wolves, 1d6 twig blights (A), 1d3 Swarm of Ravens (Str.), Spore Servant (a) (Abyss 1/2), 1d3 Violet Fungus (-); theme: prison ($)
+*/
