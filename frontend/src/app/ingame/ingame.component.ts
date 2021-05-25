@@ -1108,6 +1108,16 @@ export class IngameComponent implements OnInit
     if (false == this.blocked_timeout) this.requestHTTP("food");
   }
 
+  onDecreaseSector()
+  {
+    if (false == this.blocked_timeout) this.requestWorld("decreaseSector");
+  }
+
+  onIncreaseSector()
+  {
+    if (false == this.blocked_timeout) this.requestWorld("increaseSector");
+  }
+
   onGiveStrength()
   {
     this.requestHTTP("give_strength");
