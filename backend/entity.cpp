@@ -2,7 +2,7 @@
 
 // Entity methods
 
-Entity::Entity(std::string a_name, int a_pos_x, int a_pos_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp)
+Entity::Entity(std::string a_name, int a_pos_x, int a_pos_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp, int a_weapon)
 {
     name = a_name;
     position_x = a_pos_x;
@@ -17,6 +17,8 @@ Entity::Entity(std::string a_name, int a_pos_x, int a_pos_y, int a_strength, int
     intelligence = a_intelligence;
         
     give_xp = a_give_xp;
+    
+    weapon_damage = a_weapon;
      
 }
 
@@ -50,7 +52,7 @@ void Entity::heal(int a_boost_hp)
 // Player methods
 
 
-Player::Player(std::string a_name, int a_sector_x, int a_sector_y, int a_zone, int a_pos_x, int a_pos_y) : Entity(a_name, a_pos_x, a_pos_y, 0, 0, 0, 4, 10) 
+Player::Player(std::string a_name, int a_sector_x, int a_sector_y, int a_zone, int a_pos_x, int a_pos_y) : Entity(a_name, a_pos_x, a_pos_y, 0, 0, 0, 4, 10, 1) 
 {
     sector_x = a_sector_x;
     sector_y = a_sector_y;

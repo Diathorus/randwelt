@@ -21,6 +21,9 @@
 #define PLAYER_CREATION_SECTOR_X 50
 #define PLAYER_CREATION_SECTOR_Y 50
 
+#define PLAYER_CREATION_COORDINATE_X 500
+#define PLAYER_CREATION_COORDINATE_Y 500
+
 #define SECTOR_SIZE_X 1000
 #define SECTOR_SIZE_Y 1000
 
@@ -39,7 +42,6 @@ static long g_webserver_timer_counter = 0;
 /* TODO
  * - light forest monster stats
  * - grassland description
- * - remove zone from player constructor -> sector coordinates should be enough
  * 
  */
 
@@ -53,11 +55,19 @@ static long g_webserver_timer_counter = 0;
  *      3 = yellow flower
  */
 
+int assign_zone(int a_x, int a_y)
+{
+    int zone = 0;
+    if ((a_x == 50) && (a_y == 50)) { zone = 1; }
+    if ((a_x == 51) && (a_y == 50)) { zone = 2; }
+    return zone;
+}
+
 class Sector
 {
     
 public:
-    Sector(int a_x, int a_y, int a_zone) { init(a_x, a_y, a_zone); }
+    Sector(int a_x, int a_y) { init(a_x, a_y); }
     
     int getVoxel(int m, int n) 
     { 
@@ -71,12 +81,12 @@ public:
         }
     }
     
-    void init(int a_x, int a_y, int a_zone)
+    void init(int a_x, int a_y)
     {
         
         sector_x = a_x;
         sector_y = a_y;
-        zone = a_zone;
+        zone = assign_zone(sector_x, sector_y);
             
         // prepare world
         for (int m=0; m<SECTOR_SIZE_Y; m++)
@@ -109,19 +119,20 @@ public:
         // create monsters
         if (zone == 1) // 1 = grassland
         {
-            for (int i=0; i<2000; ++i) monsters.push_back(Monster("rat",      0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -5, 0, 1, 1));
-            for (int i=0; i<1000; ++i) monsters.push_back(Monster("pheasant", 0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -3, 0, 2, 2));
-            for (int i=0; i<500; ++i)  monsters.push_back(Monster("bush",     0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -1, 0, 3, 3));
+            for (int i=0; i<2000; ++i) monsters.push_back(Monster("rat",      0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -5, 0, 1, 1, 1));
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("pheasant", 0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y,  8, 2, 0, -3, 0, 2, 2, 1));
+            for (int i=0; i<500; ++i)  monsters.push_back(Monster("bush",     0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y,  4, 1, 0, -1, 0, 3, 3, 1));
         }       
         
         else if (zone == 2) // 2 = light forest
         {
-            for (int i=0; i<1000; ++i) monsters.push_back(Monster("commoner",   0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -5, 0, 1, 1));
-            for (int i=0; i<1000; ++i) monsters.push_back(Monster("bat",        0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -5, 0, 1, 1));
-            for (int i=0; i<1000; ++i) monsters.push_back(Monster("deer",       0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -3, 0, 2, 2));
-            for (int i=0; i<1000; ++i) monsters.push_back(Monster("sheep",      0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -3, 0, 2, 2));
-            for (int i=0; i<1000; ++i) monsters.push_back(Monster("shrub",      0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -1, 0, 3, 3));
-            for (int i=0; i<1000; ++i) monsters.push_back(Monster("crow",       0, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -1, 0, 3, 3));
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("commoner",   1, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y,  8, 2,  0, 0, 0,  rand() % 8 + 1, 10, 4)); // AC 10, Att+0, Dmg 1d4
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("bat",        1, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, -1, 1, -2, rand() % 2 + 1, 10, 2)); // AC 11, Att+1, Dmg 1d2-1
+            
+            /*for (int i=0; i<1000; ++i) monsters.push_back(Monster("deer",       1, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -3, 0, 2, 2));
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("sheep",      1, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -3, 0, 2, 2));
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("shrub",      1, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -1, 0, 3, 3));
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("crow",       1, rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -1, 0, 3, 3));*/
             
         }
     }    
@@ -132,6 +143,10 @@ public:
         if (zone == 1) { return 10; } else { return 15; }
     }
     
+    int get_sector_x() { return sector_x; }
+    int get_sector_y() { return sector_y; }
+
+    
 public: // todo: manage monsters and make it private
     std::vector<Monster> monsters;
     
@@ -141,7 +156,8 @@ private:
     
 };
 
-Sector grassland(50, 50, 1);
+
+std::vector<Sector> world;
 
 
 //-----------------------------------------------------------------------------
@@ -279,7 +295,8 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                     if (it == players.end())
                     {           
                         printf("Welcome, new player %s!\n", player_name.c_str());
-                        players.push_back(Player(player_name, PLAYER_CREATION_SECTOR_X, PLAYER_CREATION_SECTOR_Y, 1, 500, 500));
+                        players.push_back(Player(player_name, PLAYER_CREATION_SECTOR_X, PLAYER_CREATION_SECTOR_Y, 
+                                                 assign_zone(PLAYER_CREATION_SECTOR_X, PLAYER_CREATION_SECTOR_Y), PLAYER_CREATION_COORDINATE_X, PLAYER_CREATION_COORDINATE_Y));
                         printf("Try to load new player!\n");
                         players[players.size()-1].load(); // try to load (if savegame exists)
                         
@@ -304,10 +321,12 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                             // finding player or monster
                             int index_other_player = -1;
                             int index_other_monster = -1;
+                            int index_sector = -1;
                             
                             for (int i=0; i<players.size(); ++i)
                             {
                                 if ((player_name != players[i].get_name()) &&
+                                    (players[i].inSameSector(it->get_sector_x(), it->get_sector_y())) &&
                                     (it->get_position_x() == players[i].get_position_x()) &&
                                     (it->get_position_y() == players[i].get_position_y()))
                                 {
@@ -320,16 +339,30 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                             {
                                 //printf("how many monsters: %d\n", monsters.size());
                                     
-                                for (int i=0; i<grassland.monsters.size(); ++i)
+                                for (int j=0; j<world.size(); ++j)
                                 {
-                                    if ((it->get_position_x() == grassland.monsters[i].get_position_x()) &&
-                                        (it->get_position_y() == grassland.monsters[i].get_position_y()))
+                                    if ((it->get_sector_x() == world[j].get_sector_x()) &&
+                                        (it->get_sector_y() == world[j].get_sector_y()))
                                     {
-                                        index_other_monster = i;
+                                        index_sector = j;
                                         break;
                                     }
-                                        
-                                }  
+                                }
+                                
+                                if (index_sector > -1)
+                                {
+                                    
+                                    for (int i=0; i<world[index_sector].monsters.size(); ++i)
+                                    {
+                                        if ((it->get_position_x() == world[index_sector].monsters[i].get_position_x()) &&
+                                            (it->get_position_y() == world[index_sector].monsters[i].get_position_y()))
+                                        {
+                                            index_other_monster = i;
+                                            break;
+                                        }
+                                            
+                                    }
+                                }
                             }
                             
                             // found enemy -> fight
@@ -339,20 +372,20 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                                 int attack = it->create_attack();
                                 
                                 std::string l_message = "You attack ";
-                                l_message += (index_other_player > -1)?players[index_other_player].get_name():grassland.monsters[index_other_monster].get_name().c_str();
+                                l_message += (index_other_player > -1)?players[index_other_player].get_name():world[index_sector].monsters[index_other_monster].get_name().c_str();
                                 l_message += " with ";
                                 l_message += std::to_string(attack);
                                 
                                 printf("%s attacks %s with %d ", it->get_name().c_str(), 
                                        (index_other_player > -1)?players[index_other_player].get_name().c_str():
-                                        grassland.monsters[index_other_monster].get_name().c_str(), attack);
+                                        world[index_sector].monsters[index_other_monster].get_name().c_str(), attack);
                                 
                                 int damage = it->create_damage();
                                 
                                 bool hit = false;
                                 
                                 if (index_other_player > -1) { hit = players[index_other_player].is_attacked(attack, damage); }
-                                else if (index_other_monster > -1) { hit = grassland.monsters[index_other_monster].is_attacked(attack, damage); }
+                                else if (index_other_monster > -1) { hit = world[index_sector].monsters[index_other_monster].is_attacked(attack, damage); }
           
                                 if (index_other_player > -1)
                                 {
@@ -362,17 +395,17 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                                 } else if (index_other_monster > -1)
                                 {
                                     
-                                    if (grassland.monsters[index_other_monster].is_dead())
+                                    if (world[index_sector].monsters[index_other_monster].is_dead())
                                     { 
                                         printf("and wins!\n"); 
                                         l_message += " and win!";
                                         
                                         // give xp
-                                        it->boost_xp(grassland.monsters[index_other_monster].get_give_xp());
+                                        it->boost_xp(world[index_sector].monsters[index_other_monster].get_give_xp());
                                         
                                         // delete monster
-                                        grassland.monsters[index_other_monster] = grassland.monsters[grassland.monsters.size()-1];
-                                        grassland.monsters.pop_back();
+                                        world[index_sector].monsters[index_other_monster] = world[index_sector].monsters[world[index_sector].monsters.size()-1];
+                                        world[index_sector].monsters.pop_back();
                                         
                                     }
                                     else if (!hit) { printf("but misses!\n"); l_message += " but miss!"; }
@@ -390,49 +423,137 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                         else if ("food" == player_cmd)
                         {
                             
-                            int roll = rand() % 20 + 1;
-                            if (roll >= grassland.getFood() - it->get_level())
+                            int index_sector = -1;
+                            
+                            for (int j=0; j<world.size(); ++j)
                             {
-                                if (roll == 20) { it->heal(rand()%6+1); } else { it->heal(1); }
-                                it->set_status_message("You found some food!");
+                                if ((it->get_sector_x() == world[j].get_sector_x()) &&
+                                    (it->get_sector_y() == world[j].get_sector_y()))
+                                {
+                                    index_sector = j;
+                                    break;
+                                }
                             }
-                            else
+                                
+                            if (index_sector > -1) // found sector
                             {
-                                it->set_status_message("You found nothing!");
-                            }
-                        
+                            
+                                int roll = rand() % 20 + 1;
+                                if (roll >= world[index_sector].getFood() - it->get_level())
+                                {
+                                    if (roll == 20) { it->heal(rand()%6+1); } else { it->heal(1); }
+                                    it->set_status_message("You found some food!");
+                                }
+                                else
+                                {
+                                    it->set_status_message("You found nothing!");
+                                }
+                            } else { it->set_status_message("Invalid sector!"); }
                         
                         }
+                        
+                        // ===========================
+                        //  travel to another sector
+                        // ===========================
+                        
+                        else if (("decreaseSector" == player_cmd) || ("increaseSector" == player_cmd))
+                        {
+                            
+                            world_requested = true; // deliver world info to frontend
+                            
+                            // calculate coordinates of new sector
+                            
+                            printf("Sectors: %d\n", world.size());
+                            
+                            printf("TRAVEL (%d, %d) -> ", it->get_sector_x(), it->get_sector_y());
+                            
+                            int new_sector_x = it->get_sector_x();
+                            int new_sector_y = it->get_sector_y();
+                            
+                            if ("decreaseSector" == player_cmd) { new_sector_x--; }
+                            if ("increaseSector" == player_cmd) { new_sector_x++; }
+                            
+                            printf("(%d, %d) -> ", new_sector_x, new_sector_y);
+                                                                                  
+                            // find new sector 
+                            
+                            int index_sector = -1;
+                            
+                            for (int j=0; j<world.size(); ++j)
+                            {
+                                if ((new_sector_x == world[j].get_sector_x()) &&
+                                    (new_sector_y == world[j].get_sector_y()))
+                                {
+                                    index_sector = j;
+                                    break;
+                                }
+                            }
+                                
+                            if (index_sector > -1) // found sector
+                            {
+                                printf("found!\n");
+                                
+                                it->travel(new_sector_x, new_sector_y, assign_zone(new_sector_x, new_sector_y), PLAYER_CREATION_COORDINATE_X, PLAYER_CREATION_COORDINATE_Y);
+                                
+                                
+                            } else 
+                            {
+                                printf("not found!\n");
+                                
+                                world.push_back(Sector(new_sector_x, new_sector_y));
+                                it->travel(new_sector_x, new_sector_y, assign_zone(new_sector_x, new_sector_y), PLAYER_CREATION_COORDINATE_X, PLAYER_CREATION_COORDINATE_Y);
+                                
+                            }
+                            // travel to coordinates and give zone to player
+
+                            
+                        }
+                        
                         
                     } // no new player
                     
                     if (true == world_requested)
                     {
                         
-                        cape::Udc udc_world(CAPE_UDC_LIST);
-                    
-                        for (int m=it->get_position_y()+DISPLAY_M_HALF; m>=it->get_position_y()-DISPLAY_M_HALF; m--)
+                        int index_sector = -1;
+                            
+                        for (int j=0; j<world.size(); ++j)
                         {
-                            
-                            cape::Udc udc_line(CAPE_UDC_LIST);
-                            
-                            for (int n=it->get_position_x()-DISPLAY_N_HALF; n<=it->get_position_x()+DISPLAY_N_HALF; n++) // column
+                            if ((it->get_sector_x() == world[j].get_sector_x()) &&
+                                (it->get_sector_y() == world[j].get_sector_y()))
                             {
-                                cape::Udc udc_voxel(CAPE_UDC_NODE);
-                                udc_voxel.add("x", n);
-                                udc_voxel.add("y", m);
-                                udc_voxel.add("v", grassland.getVoxel(m, n));
-                                udc_line.add(udc_voxel);
+                                index_sector = j;
+                                break;
                             }
-                            
-                            udc_world.add(udc_line);
                         }
-                                
-                        std::cout << "UDC to be sent: " <<  udc_world << std::endl;
-
                         
-                        qwebs_request_send_buf (&request, udc_world.to_string().c_str(), "application/json", err);
+                        if (index_sector > -1) // found sector
+                        {
+                                
+                            cape::Udc udc_world(CAPE_UDC_LIST);
+                        
+                            for (int m=it->get_position_y()+DISPLAY_M_HALF; m>=it->get_position_y()-DISPLAY_M_HALF; m--)
+                            {
+                                
+                                cape::Udc udc_line(CAPE_UDC_LIST);
+                                
+                                for (int n=it->get_position_x()-DISPLAY_N_HALF; n<=it->get_position_x()+DISPLAY_N_HALF; n++) // column
+                                {
+                                    cape::Udc udc_voxel(CAPE_UDC_NODE);
+                                    udc_voxel.add("x", n);
+                                    udc_voxel.add("y", m);
+                                    udc_voxel.add("v", world[index_sector].getVoxel(m, n));
+                                    udc_line.add(udc_voxel);
+                                }
+                                
+                                udc_world.add(udc_line);
+                            }
+                                    
+                            std::cout << "UDC to be sent: " <<  udc_world << std::endl;
 
+                            
+                            qwebs_request_send_buf (&request, udc_world.to_string().c_str(), "application/json", err);
+                        }
                     }
                     
                     
@@ -513,7 +634,9 @@ int __STDCALL main_on_json_players (void* user_ptr, QWebsRequest request, CapeEr
                     if ((it->get_position_x() > (own_it->get_position_x() - DISPLAY_N_HALF - 11 )) &&
                         (it->get_position_x() < (own_it->get_position_x() + DISPLAY_N_HALF + 11)) &&
                         (it->get_position_y() > (own_it->get_position_y() - DISPLAY_M_HALF - 11)) &&
-                        (it->get_position_y() < (own_it->get_position_y() + DISPLAY_M_HALF + 11)))
+                        (it->get_position_y() < (own_it->get_position_y() + DISPLAY_M_HALF + 11)) &&
+                        (it->inSameSector(own_it->get_sector_x(), own_it->get_sector_y())))
+
                     {
                         cape::Udc udc_new_player(CAPE_UDC_NODE);
                         udc_new_player.add("name", it->get_name());
@@ -525,23 +648,39 @@ int __STDCALL main_on_json_players (void* user_ptr, QWebsRequest request, CapeEr
                     }
                 } 
                 
-                for(std::vector<Monster>::iterator it=grassland.monsters.begin(); it!=grassland.monsters.end(); ++it)
+                int index_sector = -1;
+                            
+                for (int j=0; j<world.size(); ++j)
                 {
-                    // send only entities that are visible on the screen (1 is for border, 10 for extrapolation)
-                    if ((it->get_position_x() > (own_it->get_position_x() - DISPLAY_N_HALF - 11)) &&
-                        (it->get_position_x() < (own_it->get_position_x() + DISPLAY_N_HALF + 11)) &&
-                        (it->get_position_y() > (own_it->get_position_y() - DISPLAY_M_HALF - 11)) &&
-                        (it->get_position_y() < (own_it->get_position_y() + DISPLAY_M_HALF + 11)))
+                    if ((own_it->get_sector_x() == world[j].get_sector_x()) &&
+                        (own_it->get_sector_y() == world[j].get_sector_y()))
                     {
-                        cape::Udc udc_new_monster(CAPE_UDC_NODE);
-                        udc_new_monster.add("name", it->get_name());
-                        udc_new_monster.add("zone", 0); // only used for being compatible with player structure             
-                        udc_new_monster.add("position_x", it->get_position_x());
-                        udc_new_monster.add("position_y", it->get_position_y());
-                        udc_new_monster.add("health", it->calculate_health());
-                        udc_entity_list.add(udc_new_monster); 
+                        index_sector = j;
+                        break;
                     }
-                } 
+                }
+                        
+                if (index_sector > -1) // found sector
+                {
+        
+                    for(std::vector<Monster>::iterator it=world[index_sector].monsters.begin(); it!=world[index_sector].monsters.end(); ++it)
+                    {
+                        // send only entities that are visible on the screen (1 is for border, 10 for extrapolation)
+                        if ((it->get_position_x() > (own_it->get_position_x() - DISPLAY_N_HALF - 11)) &&
+                            (it->get_position_x() < (own_it->get_position_x() + DISPLAY_N_HALF + 11)) &&
+                            (it->get_position_y() > (own_it->get_position_y() - DISPLAY_M_HALF - 11)) &&
+                            (it->get_position_y() < (own_it->get_position_y() + DISPLAY_M_HALF + 11)))
+                        {
+                            cape::Udc udc_new_monster(CAPE_UDC_NODE);
+                            udc_new_monster.add("name", it->get_name());
+                            udc_new_monster.add("zone", 0); // only used for being compatible with player structure             
+                            udc_new_monster.add("position_x", it->get_position_x());
+                            udc_new_monster.add("position_y", it->get_position_y());
+                            udc_new_monster.add("health", it->calculate_health());
+                            udc_entity_list.add(udc_new_monster); 
+                        }
+                    } 
+                }
                 
                 //std::cout << "UDC to be sent: " <<  udc_entity_list << std::endl;
                 qwebs_request_send_buf (&request, udc_entity_list.to_string().c_str(), "application/json", err);
@@ -560,9 +699,8 @@ static int __STDCALL callback__on_timer(void* ptr)
     //printf("on timer: %d\n", g_webserver_timer_counter);
     
     g_webserver_timer_counter += 1;
-    if (g_webserver_timer_counter > 10) // after 10 * 3 seconds
+    if (g_webserver_timer_counter == 10) // after 10 * 3 seconds
     { 
-        g_webserver_timer_counter = 0; 
         
         // store players (choose one randomly)
         if (players.size() > 0)
@@ -574,77 +712,113 @@ static int __STDCALL callback__on_timer(void* ptr)
 
     }
     
-    // move monsters
-  
-    for(std::vector<Monster>::iterator monster_it=grassland.monsters.begin(); monster_it!=grassland.monsters.end(); ++monster_it)
+    if (g_webserver_timer_counter == 20) // after another 10 * 3 seconds
     {
-                  
-        // find player
-        int index_player = -1;
+        g_webserver_timer_counter = 0; // reset 60s sequence
+
+        // clean sectors
+        int index_sector = -1;
                             
-        // todo: move KI into monster class
-        for (int i=0; i<players.size(); ++i)
+        for (int j=0; j<world.size(); ++j)
         {
-            if ((monster_it->get_position_x() > (players[i].get_position_x() - monster_it->get_view_x())) &&
-                (monster_it->get_position_x() < (players[i].get_position_x() + monster_it->get_view_x())) &&
-                (monster_it->get_position_y() > (players[i].get_position_y() - monster_it->get_view_y())) &&
-                (monster_it->get_position_y() < (players[i].get_position_y() + monster_it->get_view_y())))
+            
+            int number_players = 0;
+            for (int i=0; i<players.size(); ++i)
             {
-                printf("found player (%d, %d): %d\n", monster_it->get_position_x(), monster_it->get_position_y(), i);
-                index_player = i;
-                break;
-            }
-        }
-      
-        if (index_player == -1) // nothing found -> walk randomly at 1-4, rest at 5-6
-        {
-            int r = rand() % 6;
-                 if (1 == r) { monster_it->move_left(); }
-            else if (2 == r) { monster_it->move_right(); }
-            else if (3 == r) { monster_it->move_up(); }
-            else if (4 == r) { monster_it->move_down(); }
-          
-        }
-        else // move to player and attack
-        {           
-              
-            if ((monster_it->get_position_x() == players[index_player].get_position_x()) &&
-                (monster_it->get_position_y() == players[index_player].get_position_y()))
-            {
-                // monster attacks player
-                
-                int attack = monster_it->create_attack();                                
-                
-                std::string l_message = monster_it->get_name();
-                l_message += " attacks you with ";
-                l_message += std::to_string(attack);
-                                
-                printf("%s attacks %s with %d ", monster_it->get_name().c_str(), players[index_player].get_name().c_str(), attack);
-                int damage = monster_it->create_damage();
-                bool hit = players[index_player].is_attacked(attack, damage); 
-
-                if (players[index_player].is_dead()) { printf("and wins!\n"); l_message += " and wins!"; }
-                else if (!hit) { printf("but misses!\n"); l_message += " but misses!"; }
-                else  { printf("and causes %d damage!\n", damage); l_message += " and causes "; l_message += std::to_string(damage); l_message += " damage!"; }     
-                
-                players[index_player].set_status_message(l_message);
-
-            }
-            else
-            {
-                // movement (straight forward)
-                
-                     if (monster_it->get_position_x() > players[index_player].get_position_x()) { monster_it->move_left(); }
-                else if (monster_it->get_position_x() < players[index_player].get_position_x()) { monster_it->move_right(); }
-                     if (monster_it->get_position_y() > players[index_player].get_position_y()) { monster_it->move_down(); }
-                else if (monster_it->get_position_y() < players[index_player].get_position_y()) { monster_it->move_up(); }
-                
+                if (players[i].inSameSector(world[j].get_sector_x(), world[j].get_sector_y())) { number_players++; }
             }
             
+            if (number_players == 0) 
+            { 
+                index_sector = j;
+                break;  // delete only one sector at a time
+            }
         }
+            
+        if (index_sector > -1)
+        {
+            // delete sector
+            Sector temp = world[world.size()-1];
+            world[world.size()-1] = world[index_sector];
+            world[index_sector] = temp;
+            world.pop_back();
+        }
+    }
       
-  }
+    // move monsters (every tick)
+  
+    for (std::vector<Sector>::iterator sector_it=world.begin(); sector_it!=world.end(); ++sector_it)
+    {
+        
+        for(std::vector<Monster>::iterator monster_it=sector_it->monsters.begin(); monster_it!=sector_it->monsters.end(); ++monster_it)
+        {
+                    
+            // find player
+            int index_player = -1;
+                                
+            // todo: move KI into monster class
+            for (int i=0; i<players.size(); ++i)
+            {
+                if ((monster_it->get_position_x() > (players[i].get_position_x() - monster_it->get_view_x())) &&
+                    (monster_it->get_position_x() < (players[i].get_position_x() + monster_it->get_view_x())) &&
+                    (monster_it->get_position_y() > (players[i].get_position_y() - monster_it->get_view_y())) &&
+                    (monster_it->get_position_y() < (players[i].get_position_y() + monster_it->get_view_y())) &&
+                    (players[i].inSameSector(sector_it->get_sector_x(), sector_it->get_sector_y())))
+                {
+                    //printf("found player (%d, %d): %d\n", monster_it->get_position_x(), monster_it->get_position_y(), i);
+                    index_player = i;
+                    break;
+                }
+            }
+        
+            if (index_player == -1) // nothing found -> walk randomly at 1-4, rest at 5-6
+            {
+                int r = rand() % 6;
+                    if (1 == r) { monster_it->move_left(); }
+                else if (2 == r) { monster_it->move_right(); }
+                else if (3 == r) { monster_it->move_up(); }
+                else if (4 == r) { monster_it->move_down(); }
+            
+            }
+            else // move to player and attack
+            {           
+                
+                if ((monster_it->get_position_x() == players[index_player].get_position_x()) &&
+                    (monster_it->get_position_y() == players[index_player].get_position_y()))
+                {
+                    // monster attacks player
+                    
+                    int attack = monster_it->create_attack();                                
+                    
+                    std::string l_message = monster_it->get_name();
+                    l_message += " attacks you with ";
+                    l_message += std::to_string(attack);
+                                    
+                    printf("%s attacks %s with %d ", monster_it->get_name().c_str(), players[index_player].get_name().c_str(), attack);
+                    int damage = monster_it->create_damage();
+                    bool hit = players[index_player].is_attacked(attack, damage); 
 
+                    if (players[index_player].is_dead()) { printf("and wins!\n"); l_message += " and wins!"; }
+                    else if (!hit) { printf("but misses!\n"); l_message += " but misses!"; }
+                    else  { printf("and causes %d damage!\n", damage); l_message += " and causes "; l_message += std::to_string(damage); l_message += " damage!"; }     
+                    
+                    players[index_player].set_status_message(l_message);
+
+                }
+                else
+                {
+                    // movement (straight forward)
+                    
+                        if (monster_it->get_position_x() > players[index_player].get_position_x()) { monster_it->move_left(); }
+                    else if (monster_it->get_position_x() < players[index_player].get_position_x()) { monster_it->move_right(); }
+                        if (monster_it->get_position_y() > players[index_player].get_position_y()) { monster_it->move_down(); }
+                    else if (monster_it->get_position_y() < players[index_player].get_position_y()) { monster_it->move_up(); }
+                    
+                }
+                
+            }
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -666,6 +840,9 @@ int main (int argc, char *argv[])
 
   // allocate memory for the AIO subsystem
   aio_context = cape_aio_context_new ();
+  
+  // init world
+  world.push_back(Sector(50, 50));
 
   // setup timer
   

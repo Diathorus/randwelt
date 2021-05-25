@@ -17,7 +17,7 @@ class Entity
     
 public:     // public members
     
-    Entity(std::string a_name, int a_pos_x, int a_pos_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp);
+    Entity(std::string a_name, int a_pos_x, int a_pos_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp, int a_weapon);
     
     std::string get_name() { return name; }
     int get_position_x() { return position_x; }
@@ -33,7 +33,7 @@ public:     // public members
     int get_intelligence() { return intelligence; }
     
     int calculate_armor() { return 0; } // regard items
-    int calculate_weapon() { return 1; } // regard items
+    int calculate_weapon() { return weapon_damage; } // regard items
     int create_attack() { return rand() % 20 + 1 + get_dexterity(); }
     int create_damage() { int damage = rand() * calculate_weapon() / RAND_MAX + 1 + get_strength(); if (damage < 0) { damage = 0; } return damage; }
     
@@ -66,6 +66,9 @@ protected:    // private attributes
     // experience
     int give_xp; // XP to enemy when defeated
     
+    // weapon damage (1dx)
+    int weapon_damage;
+    
 };
 
 class Monster : public Entity
@@ -75,8 +78,8 @@ private:
     int m_view_y;
     
 public:
-    Monster(std::string a_name, int a_zone, int a_pos_x, int a_pos_y, int a_view_x, int a_view_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp) : 
-        Entity(a_name, a_pos_x, a_pos_y, a_strength, a_dexterity, a_intelligence, a_health, a_give_xp) 
+    Monster(std::string a_name, int a_zone, int a_pos_x, int a_pos_y, int a_view_x, int a_view_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp, int a_weapon) : 
+        Entity(a_name, a_pos_x, a_pos_y, a_strength, a_dexterity, a_intelligence, a_health, a_give_xp, a_weapon) 
         {
             m_view_x = a_view_x; if (m_view_x < 0) { m_view_x = 0; }
             m_view_y = a_view_y; if (m_view_y < 0) { m_view_y = 0; }
@@ -104,6 +107,9 @@ public:
     int get_give_attribute_points() { return give_attribute_points; }
     std::string get_status_message() { return status_message; }
     
+    int get_sector_x() { return sector_x; }
+    int get_sector_y() { return sector_y; }
+    
     void give_strength() { give_attribute(0); }
     void give_dexterity() { give_attribute(1); }
     void give_intelligence() { give_attribute(2); }
@@ -111,6 +117,18 @@ public:
     void give_attribute(int a_attribute);
     int boost_xp(int a_boost);
     void set_status_message(std::string a_message) { status_message = a_message; }
+    
+    inline bool inSameSector(int a_x, int a_y)
+    {
+        if ((a_x == sector_x) && (a_y == sector_y)) { return true; }
+        return false;
+    }
+    
+    inline void travel(int a_sector_x, int a_sector_y, int a_zone, int a_pos_x, int a_pos_y)
+    {
+        sector_x = a_sector_x; sector_y = a_sector_y; zone = a_zone;
+        position_x = a_pos_x; position_y = a_pos_y;
+    }
 
 private:
             
