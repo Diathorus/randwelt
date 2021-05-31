@@ -1098,6 +1098,11 @@ export class IngameComponent implements OnInit
 
   // commands
 
+  onLogout()
+  {
+    if (false == this.blocked_timeout) this.requestHTTP("logout");
+  }
+
   onAttack()
   {
     if (false == this.blocked_timeout) this.requestHTTP("attack");

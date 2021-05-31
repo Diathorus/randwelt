@@ -86,6 +86,7 @@
   </div>
 
   <div id = "character" class="fright">
+
     <div>
 
       <b> {{ authentication }} </b> (position: {{ own_player_x }}, {{ own_player_y }}) <i *ngIf="blocked_timeout"> blocked </i>
@@ -169,11 +170,13 @@
 
       <br><br>
 
-
+      <button (click)="onLogout()">Logout</button>
       <button (click)="onMoveWest()">West</button>
       <button (click)="onMoveNorth()">North</button>
       <button (click)="onMoveSouth()">South</button>
       <button (click)="onMoveEast()">East</button>
+      <button (click)="onDecreaseSector()">Travel back</button>
+      <button (click)="onIncreaseSector()">Travel forth</button>
 
       <!--command: <input type="text" onkeydown="if (event.keyCode == 13) { myFunction(); return false; }" value="Your Name">-->
       command: <input type="text" [(ngModel)]="command_message" onkeydown="if (event.keyCode == 13) { onCommandSubmitted(); return false; }">
@@ -184,10 +187,26 @@
 
       <button (click)="onAttack()">Attack</button>
       <button (click)="onFood()">Food</button>
-      <button (click)="onDecreaseSector()">Travel back</button>
-      <button (click)="onIncreaseSector()">Travel forth</button>
 
-      <br><br>
+      <!-- Music -->
+
+      <audio *ngIf="own_zone == 0" controls autoplay loop="true" volume="50" height="60" width="144">
+        <source src="ireena.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+
+      <audio *ngIf="own_zone == 1" controls autoplay loop="true" volume="50" height="60" width="144">
+        <source src="whimsical_critters.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+
+      <audio *ngIf="own_zone == 2" controls autoplay loop="true" volume="50" height="60" width="144">
+        <source src="mists.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+
+      <br>
+      <br>
 
   </div>
 
