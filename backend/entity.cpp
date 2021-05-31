@@ -2,7 +2,7 @@
 
 // Entity methods
 
-Entity::Entity(std::string a_name, int a_pos_x, int a_pos_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp, int a_weapon)
+Entity::Entity(std::string a_name, int a_pos_x, int a_pos_y, int a_strength, int a_dexterity, int a_intelligence, int a_health, int a_give_xp, int a_weapon, int a_armor)
 {
     name = a_name;
     position_x = a_pos_x;
@@ -19,6 +19,7 @@ Entity::Entity(std::string a_name, int a_pos_x, int a_pos_y, int a_strength, int
     give_xp = a_give_xp;
     
     weapon_damage = a_weapon;
+    armor_without_dexterity = a_armor;
      
 }
 
@@ -28,16 +29,14 @@ bool Entity::is_attacked(int a_attack, int a_damage)
     if (a_attack >= 10 + calculate_armor()) { hit = true; }
     if (hit) { hp_current -= a_damage; }
     
-    // death
+    // death (XP cannot set to zero because monster XP has yet to be given to player)
     if (hp_current < 0) 
     { 
         strength = 0;
         dexterity = 0;
         intelligence = 0;
         hp_current = 0; 
-        hp_max = 4;
-        give_xp = 0;
-        
+        hp_max = 4;        
     }
     return hit;
 }
@@ -52,7 +51,7 @@ void Entity::heal(int a_boost_hp)
 // Player methods
 
 
-Player::Player(std::string a_name, int a_sector_x, int a_sector_y, int a_zone, int a_pos_x, int a_pos_y) : Entity(a_name, a_pos_x, a_pos_y, 0, 0, 0, 4, 10, 1) 
+Player::Player(std::string a_name, int a_sector_x, int a_sector_y, int a_zone, int a_pos_x, int a_pos_y) : Entity(a_name, a_pos_x, a_pos_y, 0, 0, 0, 4, 10, 1, 0) 
 {
     sector_x = a_sector_x;
     sector_y = a_sector_y;
