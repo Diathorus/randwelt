@@ -31,6 +31,7 @@
       -->
 
     <pre class="ascii" *ngFor="let line of final_world"><b *ngFor="let element of line"><b
+      *ngIf="element.v == 4" style="color:DarkViolet">,</b><b
       *ngIf="element.v == 3" style="color:Yellow">.</b><b
       *ngIf="element.v == 2" style="color:darkgreen">a</b><b
       *ngIf="element.v == 1" style="color:darkgreen">ß</b><b
