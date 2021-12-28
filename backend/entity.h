@@ -35,7 +35,7 @@ public:     // public members
     int calculate_armor() { return armor_without_dexterity + dexterity; } // regard items
     int calculate_weapon() { return weapon_damage; } // regard items
     int create_attack() { return rand() % 20 + 1 + get_dexterity(); }
-    int create_damage() { int damage = rand() * calculate_weapon() / RAND_MAX + 1 + get_strength(); if (damage < 0) { damage = 0; } return damage; }
+    int create_damage() { int damage = rand() % calculate_weapon() + 1 + get_strength(); if (damage < 0) { damage = 0; } return damage; }
     
     void set_position(int a_x, int a_y) { position_x = a_x; position_y = a_y; }
     void move_right() { position_x++; if (position_x > VOLUME_SECTOR_MAX_X)  { position_x = VOLUME_SECTOR_MAX_X; } }

@@ -10,6 +10,9 @@ Entity::Entity(std::string a_name, int a_pos_x, int a_pos_y, int a_strength, int
         
     hp_current = a_health;
     hp_max = a_health;
+    
+    if (a_health < 1) { hp_current = hp_max = 1; }
+    
     health = calculate_health();
         
     strength = a_strength;
