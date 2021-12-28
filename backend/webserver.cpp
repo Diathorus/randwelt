@@ -47,6 +47,7 @@ static long g_webserver_timer_counter = 0;
  *      1 = light tree
  *      2 = bush
  *      3 = yellow flower
+ *      4 = violet flower
  */
 
 int assign_zone(int a_x, int a_y)
@@ -104,11 +105,13 @@ public:
                         if (value < 16) { world[m][n] = 0; }
                     else if (value < 28) { world[m][n] = 1; }
                     else if (value < 29) { world[m][n] = 2; }
-                    else { world[m][n] = 3; }
+                    else { world[m][n] = 4; }
                 }
 
             }
         }
+        
+        printf("world assets are ready, now place monsters..\n");
     
         int ssx = SECTOR_SIZE_X; // do not waste place
         int ssy = SECTOR_SIZE_Y; 
@@ -123,17 +126,12 @@ public:
         
         else if (zone == 2) // 2 = light forest
         {
-            for (int i=0; i<1000; ++i) monsters.push_back(Monster("commoner", rand() % ssx, rand() % ssy,  8, 2,  0,  0,  0, rand() %  8 + 1, 10, 4, 0)); // AC 10, Att+0, Dmg 1d4
-            for (int i=0; i<1000; ++i) monsters.push_back(Monster("bat",      rand() % ssx, rand() % ssy, 12, 3, -1,  1, -2, rand() %  2 + 1, 10, 2, 2)); // AC 12, Att+1, Dmg 1d2(-1)
-            
-            for (int i=0; i<500; ++i) monsters.push_back(Monster("deer",      rand() % ssx, rand() % ssy,  4, 1,  2, -3, -2, rand() %  8 + 1, 25, 4, 1)); // AC 13, Att+2, Dmg 1d4(+2)
-            for (int i=0; i<500; ++i) monsters.push_back(Monster("sheep",     rand() % ssx, rand() % ssy,  4, 1,  1,  1, -2, rand() % 16 + 1, 25, 4, 2)); // AC 13, Att+1, Dmg 1d4(+1)
-            
-            
-            /*
-            for (int i=0; i<1000; ++i) monsters.push_back(Monster("shrub",      rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -1, 0, 3, 3));
-            for (int i=0; i<1000; ++i) monsters.push_back(Monster("crow",       rand() % SECTOR_SIZE_X, rand() % SECTOR_SIZE_Y, 12, 3, 0, -1, 0, 3, 3));*/
-            
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("commoner", rand() % ssx, rand() % ssy,  8, 2,  0,  0,  0, rand() %  8 + 1, 10, 4,  0)); // AC 10, Att+0, Dmg 1d4
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("bat",      rand() % ssx, rand() % ssy, 12, 3, -1,  1, -2, rand() %  2 + 1, 10, 2,  2)); // AC 12, Att+1, Dmg 1d2(-1)
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("shrub",    rand() % ssx, rand() % ssy,  8, 2, -1,  1, -2, rand() % 15 + 3, 10, 4, -2)); // AC  9, Att+1, Dmg 1d4(-1)
+            for (int i=0; i<1000; ++i) monsters.push_back(Monster("crow",     rand() % ssx, rand() % ssy, 12, 3, -1,  4,  0, rand() %  6 + 1, 10, 3,  0)); // AC 14, Att+4, Dmg 1d3(-1)
+            for (int i=0; i< 500; ++i) monsters.push_back(Monster("deer",     rand() % ssx, rand() % ssy,  4, 1,  2, -3, -2, rand() %  8 + 1, 10, 4,  1)); // AC 13, Att+2, Dmg 1d4(+2)
+            for (int i=0; i< 500; ++i) monsters.push_back(Monster("sheep",    rand() % ssx, rand() % ssy,  4, 1,  1,  1, -2, rand() % 16 + 1, 10, 4,  2)); // AC 13, Att+1, Dmg 1d4(+1)
         }
     }    
     
@@ -256,7 +254,7 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
 
                     std::cout << "UDC to be sent: " <<  udc_players_list << std::endl;
                     
-                    qwebs_request_send_buf (&request, udc_players_list.to_string().c_str(), "application/json", err);                
+                    qwebs_request_send_buf (&request, udc_players_list.to_string().c_str(), "application/json", 0, err);                
                         
                 }
             }
@@ -543,6 +541,9 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                                 printf("not found!\n");
                                 
                                 world.push_back(Sector(new_sector_x, new_sector_y));
+                                
+                                printf("push back was successfull, not traveling to the new sector!\n");
+                                
                                 it->travel(new_sector_x, new_sector_y, assign_zone(new_sector_x, new_sector_y), PLAYER_CREATION_COORDINATE_X, PLAYER_CREATION_COORDINATE_Y);
                                 
                             }
@@ -611,7 +612,7 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
                             //std::cout << "UDC to be sent: " <<  udc_world << std::endl;
 
                             
-                            qwebs_request_send_buf (&request, udc_world.to_string().c_str(), "application/json", err);
+                            qwebs_request_send_buf (&request, udc_world.to_string().c_str(), "application/json", 0, err);
                         }
                     }
                     
@@ -626,7 +627,7 @@ int __STDCALL main_on_json (void* user_ptr, QWebsRequest request, CapeErr err)
         {
             
             //CapeStream h = qwebs_request_body (request);
-            qwebs_request_send_buf (&request, "[{\"name\":\"danger zone\"}]", "application/json", err);
+            qwebs_request_send_buf (&request, "[{\"name\":\"danger zone\"}]", "application/json", 0, err);
         }
         
     }
@@ -742,7 +743,7 @@ int __STDCALL main_on_json_players (void* user_ptr, QWebsRequest request, CapeEr
                 }
                 
                 //std::cout << "UDC to be sent: " <<  udc_entity_list << std::endl;
-                qwebs_request_send_buf (&request, udc_entity_list.to_string().c_str(), "application/json", err);
+                qwebs_request_send_buf (&request, udc_entity_list.to_string().c_str(), "application/json", 0, err);
             }  
         } 
     }
@@ -940,7 +941,7 @@ int main (int argc, char *argv[])
   cape_udc_add_s_cp (sites, "/", "public");
 
   // allocate memory and initialize the qwebs library context
-  webs = qwebs_new (sites, "127.0.0.1", 80, 4, "pages", NULL);
+  webs = qwebs_new (sites, "127.0.0.1", 80, 4, "pages", NULL, "identifier", "provider");
   // 80 is the only possible port because device runs on it and cannot receive ports in the URL
 
   // register an API which can be called by http://127.0.0.1/json/
